@@ -304,7 +304,7 @@ O `podinfo` não expõe mais um endpoint HTTP de stress na versão 6.11.0. Em ve
 * usar um gerador de carga externo como k6 ou o StressChaos do Chaos Mesh (recomendado);
 * executar `kubectl exec` no pod e rodar um comando de carga manualmente (por exemplo `grep -R` loop).
 
-Aqui vamos usar o Chaos Mesh para gerar carga controlada, porque preserva a imagem original e se integra bem com o HPA.
+Aqui vamos usar o Chaos Mesh para gerar carga controlada, porque preserva a imagem original e se integra bem com o HPA. Se o controller não estiver saudável, pule esta parte e use o fallback a seguir.
 
 Abra um terminal dedicado para monitorar o HPA:
 
@@ -330,11 +330,15 @@ Esse comando garante que `StressChaos`, `NetworkChaos`, etc., existam. Se prefer
 kubectl apply -f https://raw.githubusercontent.com/chaos-mesh/chaos-mesh/master/manifests/crd.yaml
 ``` 
 
-Em seguida, aplique o experimento de CPU:
+> ⚠️ o controller manager usa leader election e costuma entrar em `CrashLoopBackOff` em clusters leves como Minikube (perda de lease). Se os pods `chaos-controller-manager-*` não permanecerem `Running`, os webhooks do Chaos Mesh não responderão e os recursos falharão com `connection refused`. Nesses casos você pode desabilitar a eleição via valor `--set controllerManager.leaderElection.enable=false` ou simplesmente pular para o método alternativo abaixo.
+
+Após garantir que pelo menos um controller esteja `Running`, aplique o experimento de CPU:
 
 ```bash
 kubectl apply -f platform/chaos/experiments/chaos-cpu-stress.yaml
 ```
+
+Se preferir não usar Chaos Mesh, veja a seção “**Fallback: stress via podinfo flag**” abaixo.
 
 O experimento injeta 80% de CPU em um pod do content-api por 30s, gerando utilização imediata.
 
@@ -352,6 +356,23 @@ NAME          REFERENCE                TARGETS    MINPODS   MAXPODS   REPLICAS
 content-api   Deployment/content-api   198%/70%   2         10        6
 ```
 
+---
+
+## Fallback: stress via podinfo flag
+
+Se você não conseguir fazer o Chaos Mesh funcionar devido a controladores em CrashLoopBackOff, pode simular carga diretamente:
+
+```bash
+kubectl set args deployment/content-api -n production -- --stress-cpu 2
+# aguarde alguns segundos, o pod reiniciará com CPU load contínua
+kubectl get pod -n production -l app=content-api
+```
+
+Depois de testar o HPA, remova o argumento:
+
+```bash
+kubectl set args deployment/content-api -n production --
+```
 Verifique os pods:
 
 ```bash
