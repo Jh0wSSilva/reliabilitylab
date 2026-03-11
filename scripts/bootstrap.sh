@@ -256,13 +256,14 @@ helm upgrade --install chaos-mesh chaos-mesh/chaos-mesh \
   --version "$CHAOS_MESH_VERSION" \
   -n chaos-mesh \
   --set controllerManager.replicaCount=1 \
+  --set controllerManager.leaderElection.enable=false \
   --set chaosDaemon.runtime=containerd \
   --set chaosDaemon.socketPath=/run/containerd/containerd.sock \
   --set dashboard.securityMode=false \
   --wait --timeout 10m
 
 log_ok "Chaos Mesh instalado"
-wait_for_pods chaos-mesh 120
+wait_for_pods chaos-mesh 300
 
 # ============================================================================
 # FASE 7: Instalar ArgoCD
