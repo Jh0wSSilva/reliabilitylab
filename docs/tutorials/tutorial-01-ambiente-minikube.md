@@ -200,30 +200,34 @@ reliabilitylab-m03      50m          2%     400Mi           10%
 echo "=== HEALTH CHECK — Tutorial 01 ==="
 
 echo -e "\n[1/5] Nós do cluster:"
-kubectl get nodes
-echo ""
+kubectl get nodes --no-headers | awk '{print $1, $2}' && echo ""
 
-echo "[2/5] Pods do kube-system:"
-kubectl get pods -n kube-system --no-headers | awk '{print $1, $3}'
-echo ""
+echo "[2/5] Pods do kube-system (seleção):"
+kubectl get pods -n kube-system --no-headers | grep -E "coredns|metrics-server|etcd|kube-apiserver" && echo ""
 
 echo "[3/5] Metrics-server:"
-kubectl top nodes 2>/dev/null && echo "✅ metrics-server OK" || echo "❌ metrics-server não está pronto"
-echo ""
+kubectl top nodes 2>&1 | head -2 && echo ""
 
 echo "[4/5] Ingress controller:"
-kubectl get pods -n ingress-nginx --no-headers 2>/dev/null | awk '{print $1, $3}'
-echo ""
+kubectl get pod -n ingress-nginx -l app.kubernetes.io/component=controller -o custom-columns=NAME:.metadata.name,STATUS:.status.phase --no-headers 2>&1 && echo ""
 
-echo "[5/5] DNS resolution:"
-kubectl run hc-dns --image=busybox:1.36 --restart=Never --rm -it -- \
-  nslookup kubernetes.default.svc.cluster.local 2>/dev/null \
-  && echo "✅ DNS OK" || echo "❌ DNS falhou"
+echo "[5/5] DNS resolution (CoreDNS):"
+kubectl run hc-dns --image=busybox:1.36 --restart=Never --rm -it -- nslookup kubernetes.default.svc.cluster.local 2>&1 | grep -A2 "Name:"
 
 echo -e "\n=== HEALTH CHECK COMPLETO ==="
 ```
 
-**Critério:** Todos os 5 checks devem passar antes de ir para o Tutorial 02.
+**Critério:** Todos os 5 checks devem mostrar status **Running** ou **Ready** antes de ir para o Tutorial 02.
+
+**Se o DNS test falhar com "Connection refused":**
+```bash
+# Aguarde mais 1 minuto para CoreDNS estabilizar
+kubectl wait --for=condition=Ready pod -n kube-system -l k8s-app=kube-dns --timeout=60s
+
+# Teste novamente
+kubectl run test-dns --image=busybox:1.36 --restart=Never --rm -it -- \
+  nslookup kubernetes.default.svc.cluster.local
+```
 
 ---
 
