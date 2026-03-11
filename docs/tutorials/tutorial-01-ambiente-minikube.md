@@ -162,7 +162,7 @@ kubectl wait --for=condition=Ready pods --all -n ingress-nginx --timeout=180s
 ## Passo 7 — Testar DNS interno
 
 ```bash
-kubectl run test-dns --image=busybox:1.36 --restart=Never --rm -it -- nslookup kubernetes.default
+kubectl run test-dns --image=busybox:1.36 --restart=Never --rm -it -- nslookup kubernetes.default.svc.cluster.local
 ```
 
 ✅ Esperado:
@@ -171,6 +171,8 @@ Server:    10.96.0.10
 Name:      kubernetes.default.svc.cluster.local
 Address:   10.96.0.1
 ```
+
+> **Nota DNS:** Use sempre o FQDN completo `kubernetes.default.svc.cluster.local` ou apenas `kubernetes` em nslookup. O sufixo parcial `kubernetes.default` sem `svc.cluster.local` causará NXDOMAIN porque o CoreDNS não consegue resolver sem o namespace DNS completo.
 
 ---
 
@@ -215,7 +217,7 @@ echo ""
 
 echo "[5/5] DNS resolution:"
 kubectl run hc-dns --image=busybox:1.36 --restart=Never --rm -it -- \
-  nslookup kubernetes.default 2>/dev/null \
+  nslookup kubernetes.default.svc.cluster.local 2>/dev/null \
   && echo "✅ DNS OK" || echo "❌ DNS falhou"
 
 echo -e "\n=== HEALTH CHECK COMPLETO ==="

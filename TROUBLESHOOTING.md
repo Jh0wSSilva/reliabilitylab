@@ -335,8 +335,8 @@ kubectl describe pod -n argocd -l app.kubernetes.io/name=argocd-redis | grep -A1
 # Verificar eventos
 kubectl get events -n argocd --sort-by=.metadata.creationTimestamp | tail -20
 
-# Verificar DNS
-kubectl run test-dns --image=busybox:1.36 --restart=Never --rm -it -- nslookup kubernetes.default
+# Verificar DNS (usar FQDN completo para correta resolução)
+kubectl run test-dns --image=busybox:1.36 --restart=Never --rm -it -- nslookup kubernetes.default.svc.cluster.local
 ```
 
 ### Solução
