@@ -298,7 +298,13 @@ player-api           Deployment/player-api           0%/70%    2         6      
 
 ## Passo 7 — Testar HPA com carga de CPU real
 
-> O podinfo consome CPU proporcionalmente à carga HTTP, mas para testes rápidos de HPA, use o endpoint `/stress/cpu` que gera carga controlada.
+O `podinfo` não expõe mais um endpoint HTTP de stress na versão 6.11.0. Em vez disso, você pode:
+
+* redeployar o pod com a flag `--stress-cpu` ou `--stress-memory` para carregar a aplicação no arranque;
+* usar um gerador de carga externo como k6 ou o StressChaos do Chaos Mesh (recomendado);
+* executar `kubectl exec` no pod e rodar um comando de carga manualmente (por exemplo `grep -R` loop).
+
+Aqui vamos usar o Chaos Mesh para gerar carga controlada, porque preserva a imagem original e se integra bem com o HPA.
 
 Abra um terminal dedicado para monitorar o HPA:
 
@@ -307,21 +313,15 @@ Abra um terminal dedicado para monitorar o HPA:
 kubectl get hpa -n production -w
 ```
 
-Em outro terminal, gere carga de CPU via endpoint de stress do podinfo:
+Em outro terminal, aplique o experimento de CPU do Chaos Mesh:
 
 ```bash
-# Terminal 2 — gerar carga de CPU via podinfo /stress/cpu
-kubectl port-forward -n production svc/content-api 8081:9898 &
-PF_PID=$!
-sleep 2
-
-# Stress por 60 segundos (consome CPU real no container)
-curl -s "http://localhost:8081/stress/cpu?duration=60s"
-
-kill $PF_PID 2>/dev/null
+kubectl apply -f platform/chaos/experiments/chaos-cpu-stress.yaml
 ```
 
-> O endpoint `/stress/cpu` do podinfo executa operações matemáticas intensivas, consumindo CPU real do container. Também é possível usar o StressChaos do Chaos Mesh.
+O experimento injeta 80% de CPU em um pod do content-api por 30s, gerando utilização imediata.
+
+> Alternativamente você poderia usar k6 ou um `kubectl exec` com `stress-ng` se preferir.
 
 Observe o HPA no Terminal 1. Após 1-2 minutos:
 
