@@ -195,19 +195,23 @@ kubectl delete pod test-limits -n production
 
 ## Passo 5 — Testar o ResourceQuota (recurso excedido)
 
-Tente criar um pod que exceda o `max` do LimitRange:
+Tente criar um pod que exceda o `max` do LimitRange. observe que o LimitRange injeta **limites padrão** (`limits.cpu=200m`, `limits.memory=256Mi`) se você não especificar, portanto qualquer request maior do que esses valores também será rejeitado.
+
+No exemplo abaixo nós especificamos _requests_ altos, mas não definimos um _limit_; o LimitRange aplica o limit padrão e reclama se o request ultrapassar esse limite:
 
 ```bash
 kubectl run test-exceed --image=ghcr.io/stefanprodan/podinfo:6.11.0 -n production \
   --overrides='{"spec":{"containers":[{"name":"test","image":"ghcr.io/stefanprodan/podinfo:6.11.0","resources":{"requests":{"cpu":"2","memory":"2Gi"}}}]}}'
 ```
 
-✅ Esperado: erro indicando que o pod excede os limites:
+✅ Esperado: mensagem de erro similar a esta (pode variar conforme versão):
 ```
-Error from server (Forbidden): ... maximum cpu usage per Container is 1, but limit is 2
+The Pod "test-exceed" is invalid:
+* spec.containers[0].resources.requests: Invalid value: "2": must be less than or equal to cpu limit of 200m
+* spec.containers[0].resources.requests: Invalid value: "2Gi": must be less than or equal to memory limit of 256Mi
 ```
 
-> O LimitRange rejeitou a criação porque `cpu: 2` ultrapassa o `max.cpu: 1`.
+> Aqui o API Server está apontando que os _requests_ são maiores que os _limits_ injetados automaticamente. O comportamento correto do LimitRange é garantir que qualquer container não peça mais do que os limites permitidos pelo namespace.
 
 ---
 
