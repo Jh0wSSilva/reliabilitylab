@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: streamflix-production
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Jh0wSSilva/reliabilitylab.git
+    targetRevision: main
+    path: k8s/namespaces
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: production
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=false

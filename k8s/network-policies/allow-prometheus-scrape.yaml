@@ -1,0 +1,33 @@
+# Allow Prometheus to scrape metrics from production pods
+#
+# O Prometheus (namespace: monitoring) precisa acessar as portas
+# de métricas dos pods no namespace production. Sem essa policy,
+# o default-deny bloqueia o scrape e o Prometheus não coleta métricas.
+#
+# A porta 9898 é usada porque os serviços StreamFlix (podinfo)
+# expõem métricas em /metrics na mesma porta HTTP.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-prometheus-scrape
+  namespace: production
+spec:
+  podSelector:
+    matchExpressions:
+    - key: app
+      operator: In
+      values:
+      - content-api
+      - recommendation-api
+      - player-api
+  policyTypes:
+  - Ingress
+  ingress:
+  # Permite scrape vindo do namespace monitoring (Prometheus)
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: monitoring
+    ports:
+    - protocol: TCP
+      port: 9898

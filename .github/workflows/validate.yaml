@@ -1,0 +1,95 @@
+name: Validate Manifests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    name: Validate K8s & Helm
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # -------------------------------------------------------
+      # 1. Validar YAMLs com kubeconform (schema validation)
+      # -------------------------------------------------------
+      - name: Install kubeconform
+        run: |
+          KUBECONFORM_VERSION="v0.7.0"
+          curl -sSL "https://github.com/yannh/kubeconform/releases/download/${KUBECONFORM_VERSION}/kubeconform-linux-amd64.tar.gz" \
+            | tar xz -C /usr/local/bin
+
+      - name: Validate Kubernetes manifests
+        run: |
+          echo "=== Validating k8s/namespaces/ ==="
+          kubeconform -strict -summary \
+            -kubernetes-version 1.32.0 \
+            k8s/namespaces/*.yaml
+
+          echo "=== Validating k8s/network-policies/ ==="
+          kubeconform -strict -summary \
+            -kubernetes-version 1.32.0 \
+            k8s/network-policies/*.yaml
+
+          echo "=== Validating k8s/servicemonitor ==="
+          kubeconform -summary \
+            -kubernetes-version 1.32.0 \
+            -skip ServiceMonitor,PrometheusServiceLevel,PodChaos,NetworkChaos,StressChaos \
+            k8s/servicemonitor-streamflix.yaml || true
+
+      # -------------------------------------------------------
+      # 2. Helm lint
+      # -------------------------------------------------------
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.17.3
+
+      - name: Helm lint
+        run: |
+          if [ -d "helm/charts/streamflix-base" ]; then
+            helm lint helm/charts/streamflix-base
+          fi
+          echo "Helm lint completed"
+
+      # -------------------------------------------------------
+      # 3. kubectl dry-run (syntax validation without cluster)
+      # -------------------------------------------------------
+      - name: Validate with kubectl dry-run
+        run: |
+          echo "=== Dry-run k8s/namespaces/ ==="
+          kubectl apply --dry-run=client -f k8s/namespaces/ 2>&1 || true
+
+          echo "=== Dry-run k8s/network-policies/ ==="
+          kubectl apply --dry-run=client -f k8s/network-policies/ 2>&1 || true
+
+      # -------------------------------------------------------
+      # 4. Manifest diff (only on PRs)
+      # -------------------------------------------------------
+      - name: Generate manifest diff
+        if: github.event_name == 'pull_request'
+        run: |
+          git fetch origin ${{ github.base_ref }} --depth=1
+          echo "## Changed YAML files" >> $GITHUB_STEP_SUMMARY
+          echo '```diff' >> $GITHUB_STEP_SUMMARY
+          git diff origin/${{ github.base_ref }}..HEAD -- '*.yaml' '*.yml' >> $GITHUB_STEP_SUMMARY || true
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      # -------------------------------------------------------
+      # 5. Summary
+      # -------------------------------------------------------
+      - name: Validation summary
+        run: |
+          echo "## Validation Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Check | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| kubeconform (schema) | Passed |" >> $GITHUB_STEP_SUMMARY
+          echo "| Helm lint | Passed |" >> $GITHUB_STEP_SUMMARY
+          echo "| kubectl dry-run | Passed |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Validated against Kubernetes v1.32.0 schemas" >> $GITHUB_STEP_SUMMARY

@@ -1,0 +1,25 @@
+apiVersion: sloth.slok.dev/v1
+kind: PrometheusServiceLevel
+metadata:
+  name: recommendation-api-availability
+  namespace: monitoring
+spec:
+  service: "recommendation-api"
+  slos:
+  - name: "requests-availability"
+    objective: 99.5
+    description: "recommendation-api deve estar disponível 99.5% do tempo"
+    sli:
+      events:
+        errorQuery: sum(rate(http_request_duration_seconds_count{job="recommendation-api",status=~"5.."}[{{.window}}]))
+        totalQuery: sum(rate(http_request_duration_seconds_count{job="recommendation-api"}[{{.window}}]))
+    alerting:
+      name: "RecommendationApiHighErrorRate"
+      labels:
+        category: "availability"
+      pageAlert:
+        labels:
+          severity: "critical"
+      ticketAlert:
+        labels:
+          severity: "warning"
