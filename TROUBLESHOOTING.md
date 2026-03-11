@@ -12,6 +12,7 @@ Guia centralizado com todos os problemas reais encontrados durante o desenvolvim
 - [P4 — Cluster instável após horas rodando](#p4--cluster-instável-após-horas-rodando)
 - [P5 — ArgoCD redis-secret-init timeout](#p5--argocd-redis-secret-init-timeout)
 - [P6 — HPA não escalando](#p6--hpa-não-escalando-targets-unknown-ou-cpu-muito-baixa)
+- [P7 — Ingress-nginx pods não ficam Ready](#p7--ingress-nginx-pods-não-ficam-ready)
 
 ---
 
@@ -423,6 +424,92 @@ Use workloads que consumam CPU de forma realista (como podinfo). Para testes de 
 
 ---
 
+---
+
+## P7 — Ingress-nginx pods não ficam Ready
+
+### Sintoma
+
+Ao usar `kubectl wait --for=condition=Ready pods --all -n ingress-nginx`, a operação faz timeout:
+
+```
+timed out waiting for the condition on pods/ingress-nginx-admission-create-nht5g
+timed out waiting for the condition on pods/ingress-nginx-admission-patch-m7rzp
+timed out waiting for the condition on pods/ingress-nginx-controller-6fc6655698-xx7g9
+```
+
+Ou o pod controller mostra `0/1 Running` e não sobe para `1/1 Ready`.
+
+### Causa raiz
+
+Dois problemas distintos:
+
+1. **Jobs de admission:** `kubectl wait --all` tenta esperar pelos Jobs de admission (`ingress-nginx-admission-create` e `ingress-nginx-admission-patch`) entrarem em `Ready`, mas Jobs naturalmente completam e não ficam em estado `Ready`. Isso causa timeout falso.
+
+2. **Pod controller não sobe:** O pod controller falha em montar o secret `ingress-nginx-admission` que deveria ter sido criado pelos Jobs. Se os Jobs não completarem com sucesso, o pod controller fica preso em `ContainersReady=True` mas `Ready=False`.
+
+### Diagnóstico
+
+```bash
+# Verificar status detalhado
+kubectl get pods -n ingress-nginx -o wide
+
+# Verificar se secret foi criado
+kubectl get secret -n ingress-nginx ingress-nginx-admission
+
+# Ver logs dos jobs
+kubectl logs -n ingress-nginx -l batch.kubernetes.io/job-name=ingress-nginx-admission-create --tail=20
+
+# Ver eventos do pod controller
+kubectl describe pod -n ingress-nginx -l app.kubernetes.io/name=ingress-nginx | grep -A10 "Events:"
+```
+
+### Solução
+
+**Opção 1: Aguardar apenas o controller (recomendado)**
+
+Em vez de `--all`, aguarde apenas o pod controller usando seu label específico:
+
+```bash
+# Coreto: espera apenas o controller, ignora os Jobs
+kubectl wait --for=condition=Ready pod \
+  -n ingress-nginx \
+  -l app.kubernetes.io/component=controller \
+  --timeout=180s
+
+# Ou com label mais genérico
+kubectl wait --for=condition=Ready pod \
+  -n ingress-nginx \
+  -l app.kubernetes.io/name=ingress-nginx \
+  --timeout=180s
+```
+
+**Opção 2: Se o controller ainda não sobe**
+
+Reinicie o deployment:
+
+```bash
+kubectl rollout restart deployment ingress-nginx-controller -n ingress-nginx
+kubectl rollout status deployment ingress-nginx-controller -n ingress-nginx
+```
+
+### Como evitar
+
+1. Nunca use `--all` com namespaces contendo Jobs — sempre especifique labels ou deployments específicos
+2. O secret `ingress-nginx-admission` deve ser criado automaticamente pelos Jobs: se vê erro "secret not found", aguarde mais um pouco (Jobs podem levar ~30s)
+3. Sempre use `kubectl wait` com labels específicos para aumentar a precisão
+
+### Nota técnica
+
+Os Jobs de admission (`admission-create` e `admission-patch`) são Job da API Kubernetes que executam uma única vez durante o bootstrap do ingress-nginx para:
+- Gerar certificados TLS para o webhook
+- Criar o secret `ingress-nginx-admission` com os certificados
+- Fazer patch nas validating/mutating webhooks com o CA bundle
+
+Apos completarem com sucesso, seu status é `0/1 Completed` (não `1/1 Ready`) — isso é normal. O importante é verificar que o secret foi criado e que o pod controller está `1/1 Ready`.
+
+---
+
 ## Referência rápida
 
 | Problema | Solução de uma linha |
@@ -433,3 +520,4 @@ Use workloads que consumam CPU de forma realista (como podinfo). Para testes de 
 | P4 | `--memory=4096` por nó no Minikube |
 | P5 | Instalar ArgoCD somente após cluster estável com 4GB RAM |
 | P6 | Verificar metrics-server e usar `podinfo /stress/cpu` para simular carga |
+| P7 | `kubectl wait` com `-l app.kubernetes.io/component=controller`, não `--all` |

@@ -73,6 +73,24 @@ Minikube (3 nos — 1 control-plane + 2 workers)
 
 ---
 
+## Getting Started
+
+### Clone o repositório
+
+```bash
+# Clone com versão v1.0.0 (release limpa e estável)
+git clone https://github.com/Jh0wSSilva/reliabilitylab.git
+cd reliabilitylab
+
+# Verifique a versão
+git tag -l
+# Esperado: v1.0.0
+```
+
+> **ℹ️ Nota:** Este repositório foi resetado para um commits inicial único contendo todo o código v1.0.0. Isso fornece uma base limpa para estudar cada fase da construção através dos tutoriais.
+
+---
+
 ## Quick Start
 
 ### Pre-requisitos

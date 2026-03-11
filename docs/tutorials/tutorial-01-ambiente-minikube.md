@@ -263,6 +263,24 @@ kubectl config current-context
 
 ---
 
+## ⚡ Próximo passo: Bootstrap automático (opcional)
+
+Se você completou este tutorial com sucesso, pode pular os tutoriais 02-07 e provisionar todo o stack de uma vez usando:
+
+```bash
+# Torne o script executável
+chmod +x scripts/bootstrap.sh
+
+# Execute o bootstrap automático (7 fases: cluster -> namespaces -> monitoramento -> SLOs -> servicos -> chaos -> argocd)
+./scripts/bootstrap.sh
+```
+
+O script provisiona tudo em ordem e verifica health entre cada fase. **Recomendado para:** quem quer pular a curva de aprendizado e começar com SLOs, chaos engineering e observabilidade.
+
+**Para aprender conceitos:** continue com os tutoriais 02-07 passo a passo. Cada um detalha o "porquê" e o "como" de cada componente.
+
+---
+
 ## Prompts para continuar com a IA
 
 > Use estes prompts no Copilot Chat para destravar problemas ou explorar o ambiente.
