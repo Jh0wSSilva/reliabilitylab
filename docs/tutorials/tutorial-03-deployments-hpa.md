@@ -313,7 +313,24 @@ Abra um terminal dedicado para monitorar o HPA:
 kubectl get hpa -n production -w
 ```
 
-Em outro terminal, aplique o experimento de CPU do Chaos Mesh:
+🔔 **Pré-requisito:** o Chaos Mesh deve estar instalado e seus CRDs aplicados no namespace `chaos-mesh`. Caso ainda não tenha executado o bootstrap completo, rode:
+
+```bash
+helm repo add chaos-mesh https://charts.chaos-mesh.org
+helm upgrade --install chaos-mesh chaos-mesh/chaos-mesh -n chaos-mesh \
+  --create-namespace \
+  --set chaosDaemon.runtime=containerd \
+  --set chaosDaemon.socketPath=/run/containerd/containerd.sock \
+  --wait
+```
+
+Esse comando garante que `StressChaos`, `NetworkChaos`, etc., existam. Se preferir apenas instalar os CRDs rapidamente, execute:
+
+```bash
+kubectl apply -f https://raw.githubusercontent.com/chaos-mesh/chaos-mesh/master/manifests/crd.yaml
+``` 
+
+Em seguida, aplique o experimento de CPU:
 
 ```bash
 kubectl apply -f platform/chaos/experiments/chaos-cpu-stress.yaml
