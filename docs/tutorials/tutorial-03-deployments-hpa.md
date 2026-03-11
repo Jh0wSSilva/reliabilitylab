@@ -256,13 +256,19 @@ kubectl run test-curl --image=curlimages/curl --restart=Never --rm -it -n produc
 
 ```bash
 kubectl autoscale deployment content-api \
-  -n production --min=2 --max=10 --cpu-percent=70
+  -n production --min=2 --max=10 --cpu=70%
 
+# Se houver um HPA antigo, remova antes
+kubectl delete hpa recommendation-api -n production 2>/dev/null || true
+
+# então crie novamente com sintaxe atualizada
 kubectl autoscale deployment recommendation-api \
-  -n production --min=2 --max=8 --cpu-percent=70
+  -n production --min=2 --max=8 --cpu=70%
+
+# (o flag `--cpu-percent` foi deprecado; use `--cpu=70%` ou defina um manifesto v2 manualmente)
 
 kubectl autoscale deployment player-api \
-  -n production --min=2 --max=6 --cpu-percent=70
+  -n production --min=2 --max=6 --cpu=70%
 ```
 
 ✅ Esperado:
