@@ -234,7 +234,7 @@ minikube start \
 
 ### Como evitar
 
-Em ambiente Minikube/local, sempre use `controllerManager.replicaCount=1`. A alta disponibilidade (3 réplicas) só faz sentido em clusters de produção com recursos abundantes.
+Em ambiente Minikube/local, sempre use `controllerManager.replicaCount=1`. Não há problema se apenas UM controller ficar `Running` — os demais frequentemente apresentam `Error` ou `CrashLoopBackOff` por perderem a eleição. Alta disponibilidade (3 réplicas) só faz sentido em clusters de produção com recursos abundantes; em ambientes pequenos, múltiplas réplicas só geram erros e consomem CPU sem benefício.
 
 ---
 
