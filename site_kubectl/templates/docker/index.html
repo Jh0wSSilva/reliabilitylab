@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block breadcrumbs %}Home / Docker{% endblock %}
+
+{% block content %}
+<style>
+.tut-header { margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 1rem; }
+.tut-header h1 { margin-bottom: 0; }
+.tut-count { font-size: 0.85rem; color: var(--text-muted); }
+
+.tut-list { display: flex; flex-direction: column; gap: 1rem; }
+.tut-card {
+  display: flex; align-items: stretch; gap: 0;
+  background: var(--bg-secondary); backdrop-filter: blur(16px);
+  border: 1px solid var(--border-color); border-radius: 16px;
+  text-decoration: none; transition: all 0.3s ease;
+  overflow: hidden;
+}
+.tut-card:hover {
+  transform: translateX(6px);
+  border-color: var(--border-highlight);
+  box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+}
+.tut-num {
+  width: 60px; display: flex; align-items: center; justify-content: center;
+  font-size: 1.4rem; font-weight: 800; color: rgba(59,130,246,0.3);
+  background: rgba(59,130,246,0.04); border-right: 1px solid var(--border-color);
+  flex-shrink: 0; font-family: var(--font-code);
+}
+.tut-body { padding: 1.25rem 1.5rem; flex: 1; min-width: 0; }
+.tut-meta { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem; }
+.tut-cat { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--accent-blue); }
+.tut-title { font-size: 1.15rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.4rem; }
+.tut-excerpt { font-size: 0.9rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 0.6rem; }
+.tut-tags { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+.tut-tag {
+  font-size: 0.65rem; font-weight: 600; padding: 0.15rem 0.5rem;
+  border-radius: 20px; background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border-color); color: var(--text-muted);
+}
+.tut-right {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 1rem 1.25rem; gap: 0.6rem; flex-shrink: 0;
+  border-left: 1px solid var(--border-color);
+}
+.tut-card:hover .tut-arrow { color: var(--accent-neon); transform: translateX(3px); }
+.tut-arrow { color: var(--text-muted); transition: all 0.3s; }
+</style>
+
+<div class="tut-header">
+  <div>
+    <span class="tag beginner" style="margin-bottom: 0.5rem;">Novice to Expert</span>
+    <h1>Docker Mastery</h1>
+    <p>Aprenda a empacotar seu código de forma determinística — roda igual na sua máquina e em produção.</p>
+  </div>
+  <span class="tut-count">{{ tutorials | length }} tutoriais disponíveis</span>
+</div>
+
+<div class="tut-list">
+  {% for tut in tutorials %}
+  <a href="/docker/{{ tut.slug }}" class="tut-card">
+    <div class="tut-num">{{ "%02d" | format(loop.index) }}</div>
+    <div class="tut-body">
+      <div class="tut-meta">
+        <span class="tut-cat">{{ tut.category }}</span>
+        <span class="time-badge"><i data-lucide="clock" size="12"></i> {{ tut.duration }}min</span>
+        <span class="diff-badge">
+          <span class="diff-bars">
+            {% for i in range(1, 6) %}
+            <span class="bar {% if i <= tut.level %}on{% endif %}"></span>
+            {% endfor %}
+          </span>
+        </span>
+      </div>
+      <div class="tut-title">{{ tut.title }}</div>
+      <div class="tut-excerpt">{{ tut.excerpt }}</div>
+      <div class="tut-tags">
+        {% for tag in tut.tags %}
+        <span class="tut-tag">{{ tag }}</span>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="tut-right">
+      <i data-lucide="chevron-right" size="20" class="tut-arrow"></i>
+    </div>
+  </a>
+  {% endfor %}
+</div>
+
+{% endblock %}

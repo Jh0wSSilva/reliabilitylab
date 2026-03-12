@@ -1,0 +1,30 @@
+[
+  {
+    "id": "tool-1",
+    "name": "Helm",
+    "description": "Gerenciador de pacotes para Kubernetes. Cria 'Charts' parametrizados com values.yaml.",
+    "docs_url": "https://helm.sh",
+    "install_cmd": "curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 && bash get_helm.sh"
+  },
+  {
+    "id": "tool-2",
+    "name": "k9s",
+    "description": "Um incrível terminal UI interativo que te permite navegar nos clusters rapidamente.",
+    "docs_url": "https://k9scli.io/",
+    "install_cmd": "brew install k9s"
+  },
+  {
+    "id": "tool-3",
+    "name": "Istio",
+    "description": "Istio Service Mesh que injeta sidecars oferecendo mTLS, circuit breakers e observabilidade.",
+    "docs_url": "https://istio.io/",
+    "install_cmd": "curl -L https://istio.io/downloadIstio | sh -"
+  },
+  {
+    "id": "tool-4",
+    "name": "ArgoCD",
+    "description": "Padrão ouro de GitOps. Assiste um repositório Git e sincroniza manifestos para o Cluster automaticamente.",
+    "docs_url": "https://argoproj.github.io/cd/",
+    "install_cmd": "kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/v2.5.8/manifests/install.yaml"
+  }
+]

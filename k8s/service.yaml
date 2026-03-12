@@ -1,0 +1,19 @@
+# Service ClusterIP para expor a aplicação internamente no cluster
+apiVersion: v1
+kind: Service
+metadata:
+  name: site-kubectl
+  namespace: reliabilitylab
+  labels:
+    app.kubernetes.io/name: site-kubectl
+    app.kubernetes.io/part-of: reliabilitylab
+    app.kubernetes.io/component: web
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: site-kubectl
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8000
+    protocol: TCP

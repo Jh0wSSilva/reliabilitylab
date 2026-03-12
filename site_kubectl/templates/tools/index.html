@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block breadcrumbs %}Home / Tools{% endblock %}
+
+{% block content %}
+<span class="tag advanced">Ecosystem & Addons</span>
+<h1>Ferramentas do Ecossistema</h1>
+<p>A força do Kubernetes não está apenas nele mesmo, mas na infinidade de ferramentas CNCF que se plugam à sua infraestrutura.</p>
+
+<div class="grid-cards">
+    {% for tool in tools %}
+    <div class="card">
+        <div class="card-icon" style="color: var(--accent-blue); background: rgba(59,130,246,0.1);"><i data-lucide="wrench" size="28"></i></div>
+        <div class="card-title">{{ tool.name }}</div>
+        <p class="card-desc">{{ tool.description }}</p>
+        
+        <div style="margin-top: 1.5rem; border-top: 1px solid var(--border-color); padding-top: 1rem;">
+            <p style="font-size: 0.85rem; font-family: var(--font-code); color: var(--text-muted); padding: 0.5rem; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                {{ tool.install_cmd }}
+            </p>
+            <a href="{{ tool.docs_url }}" target="_blank" style="color: var(--accent-neon); text-decoration: none; font-size: 0.9rem; margin-top: 0.5rem; display: inline-block;">
+                <i data-lucide="external-link" size="14"></i> Official Docs
+            </a>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

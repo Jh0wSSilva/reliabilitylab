@@ -1,0 +1,434 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": "-- Grafana --",
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(255, 96, 96, 1)",
+        "name": "Alertas",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "links": [],
+  "panels": [
+    {
+      "title": "=== SLO Compliance ===",
+      "type": "text",
+      "gridPos": { "h": 2, "w": 24, "x": 0, "y": 0 },
+      "options": {
+        "mode": "markdown",
+        "content": "### SLO Compliance — Target: 99.9% Disponibilidade"
+      }
+    },
+    {
+      "title": "Disponibilidade Atual (30d)",
+      "type": "gauge",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(rate(http_requests_total{namespace=\"reliabilitylab\",status!~\"5..\"}[30m])) / sum(rate(http_requests_total{namespace=\"reliabilitylab\"}[30m])) * 100",
+          "legendFormat": "Disponibilidade %"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 95,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "red", "value": 99 },
+              { "color": "orange", "value": 99.5 },
+              { "color": "yellow", "value": 99.9 },
+              { "color": "green", "value": 99.95 }
+            ]
+          }
+        }
+      },
+      "gridPos": { "h": 8, "w": 6, "x": 0, "y": 2 }
+    },
+    {
+      "title": "Taxa de Erros 5xx",
+      "type": "gauge",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "(sum(rate(http_requests_total{namespace=\"reliabilitylab\",status=~\"5..\"}[30m])) / sum(rate(http_requests_total{namespace=\"reliabilitylab\"}[30m]))) * 100",
+          "legendFormat": "Error Rate %"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 5,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 0.1 },
+              { "color": "orange", "value": 0.5 },
+              { "color": "red", "value": 1 }
+            ]
+          }
+        }
+      },
+      "gridPos": { "h": 8, "w": 6, "x": 6, "y": 2 }
+    },
+    {
+      "title": "Latência P95",
+      "type": "gauge",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{namespace=\"reliabilitylab\"}[5m])) by (le))",
+          "legendFormat": "P95 Latency"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "min": 0,
+          "max": 2,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 0.3 },
+              { "color": "orange", "value": 0.5 },
+              { "color": "red", "value": 1 }
+            ]
+          }
+        }
+      },
+      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 2 }
+    },
+    {
+      "title": "Latência P99",
+      "type": "gauge",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{namespace=\"reliabilitylab\"}[5m])) by (le))",
+          "legendFormat": "P99 Latency"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "min": 0,
+          "max": 5,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 0.5 },
+              { "color": "orange", "value": 1 },
+              { "color": "red", "value": 3 }
+            ]
+          }
+        }
+      },
+      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 2 }
+    },
+    {
+      "title": "=== Error Budget ===",
+      "type": "text",
+      "gridPos": { "h": 2, "w": 24, "x": 0, "y": 10 },
+      "options": {
+        "mode": "markdown",
+        "content": "### Error Budget — Orçamento de Erros (SLO 99.9% = 0.1% budget)"
+      }
+    },
+    {
+      "title": "Error Budget Consumido (%)",
+      "type": "gauge",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "clamp_max(\n  (\n    (1 - (\n      sum(rate(http_requests_total{namespace=\"reliabilitylab\",status!~\"5..\"}[1h]))\n      /\n      sum(rate(http_requests_total{namespace=\"reliabilitylab\"}[1h]))\n    )) / (1 - 0.999)\n  ) * 100\n, 100)",
+          "legendFormat": "Budget Consumido"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 25 },
+              { "color": "orange", "value": 50 },
+              { "color": "red", "value": 75 }
+            ]
+          }
+        }
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 12 }
+    },
+    {
+      "title": "Error Budget Restante (min/mês)",
+      "type": "stat",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "clamp_min(\n  43.2 * (1 - clamp_max(\n    (\n      (1 - (\n        sum(rate(http_requests_total{namespace=\"reliabilitylab\",status!~\"5..\"}[1h]))\n        /\n        sum(rate(http_requests_total{namespace=\"reliabilitylab\"}[1h]))\n      )) / (1 - 0.999)\n    )\n  , 1))\n, 0)",
+          "legendFormat": "Minutos restantes"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "min",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "orange", "value": 5 },
+              { "color": "yellow", "value": 15 },
+              { "color": "green", "value": 30 }
+            ]
+          }
+        }
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 12 }
+    },
+    {
+      "title": "Burn Rate Atual",
+      "type": "stat",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "(\n  1 - (\n    sum(rate(http_requests_total{namespace=\"reliabilitylab\",status!~\"5..\"}[1h]))\n    /\n    sum(rate(http_requests_total{namespace=\"reliabilitylab\"}[1h]))\n  )\n) / (1 - 0.999)",
+          "legendFormat": "Burn Rate"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "x",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 2 },
+              { "color": "orange", "value": 6 },
+              { "color": "red", "value": 14.4 }
+            ]
+          }
+        }
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 12 }
+    },
+    {
+      "title": "=== Burn Rate ao Longo do Tempo ===",
+      "type": "text",
+      "gridPos": { "h": 2, "w": 24, "x": 0, "y": 20 },
+      "options": {
+        "mode": "markdown",
+        "content": "### Burn Rate — Tendência (quanto mais alto, mais rápido o budget se esgota)"
+      }
+    },
+    {
+      "title": "Burn Rate — Múltiplas Janelas",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "(\n  1 - (\n    sum(rate(http_requests_total{namespace=\"reliabilitylab\",status!~\"5..\"}[5m]))\n    /\n    sum(rate(http_requests_total{namespace=\"reliabilitylab\"}[5m]))\n  )\n) / (1 - 0.999)",
+          "legendFormat": "Burn Rate 5m"
+        },
+        {
+          "expr": "(\n  1 - (\n    sum(rate(http_requests_total{namespace=\"reliabilitylab\",status!~\"5..\"}[1h]))\n    /\n    sum(rate(http_requests_total{namespace=\"reliabilitylab\"}[1h]))\n  )\n) / (1 - 0.999)",
+          "legendFormat": "Burn Rate 1h"
+        },
+        {
+          "expr": "(\n  1 - (\n    sum(rate(http_requests_total{namespace=\"reliabilitylab\",status!~\"5..\"}[6h]))\n    /\n    sum(rate(http_requests_total{namespace=\"reliabilitylab\"}[6h]))\n  )\n) / (1 - 0.999)",
+          "legendFormat": "Burn Rate 6h"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 2 },
+              { "color": "red", "value": 14.4 }
+            ]
+          }
+        }
+      },
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 22 }
+    },
+    {
+      "title": "=== Latência Detalhada ===",
+      "type": "text",
+      "gridPos": { "h": 2, "w": 24, "x": 0, "y": 32 },
+      "options": {
+        "mode": "markdown",
+        "content": "### Percentis de Latência (SLO: P95 < 500ms, P99 < 1s)"
+      }
+    },
+    {
+      "title": "Latência — Percentis ao Longo do Tempo",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(http_request_duration_seconds_bucket{namespace=\"reliabilitylab\"}[5m])) by (le))",
+          "legendFormat": "P50 (mediana)"
+        },
+        {
+          "expr": "histogram_quantile(0.90, sum(rate(http_request_duration_seconds_bucket{namespace=\"reliabilitylab\"}[5m])) by (le))",
+          "legendFormat": "P90"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{namespace=\"reliabilitylab\"}[5m])) by (le))",
+          "legendFormat": "P95"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{namespace=\"reliabilitylab\"}[5m])) by (le))",
+          "legendFormat": "P99"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 5,
+            "showPoints": "never"
+          }
+        }
+      },
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 34 }
+    },
+    {
+      "title": "Taxa de Erros ao Longo do Tempo",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "(\n  sum(rate(http_requests_total{namespace=\"reliabilitylab\",status=~\"5..\"}[5m]))\n  /\n  sum(rate(http_requests_total{namespace=\"reliabilitylab\"}[5m]))\n) * 100",
+          "legendFormat": "Error Rate %"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 20,
+            "lineStyle": { "fill": "solid" },
+            "showPoints": "never"
+          },
+          "color": { "mode": "fixed", "fixedColor": "red" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 0.1 }
+            ]
+          }
+        }
+      },
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 34 }
+    },
+    {
+      "title": "=== Infraestrutura ===",
+      "type": "text",
+      "gridPos": { "h": 2, "w": 24, "x": 0, "y": 44 },
+      "options": {
+        "mode": "markdown",
+        "content": "### Saúde da Infraestrutura"
+      }
+    },
+    {
+      "title": "Pods Disponíveis vs Desejados",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "kube_deployment_status_replicas_available{namespace=\"reliabilitylab\",deployment=\"site-kubectl\"}",
+          "legendFormat": "Disponíveis"
+        },
+        {
+          "expr": "kube_deployment_spec_replicas{namespace=\"reliabilitylab\",deployment=\"site-kubectl\"}",
+          "legendFormat": "Desejados"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10
+          }
+        }
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 46 }
+    },
+    {
+      "title": "Restarts de Containers",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "increase(kube_pod_container_status_restarts_total{namespace=\"reliabilitylab\",container=\"site-kubectl\"}[5m])",
+          "legendFormat": "{{pod}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 20
+          },
+          "color": { "mode": "fixed", "fixedColor": "orange" }
+        }
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 46 }
+    },
+    {
+      "title": "Requisições por Segundo",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(rate(http_requests_total{namespace=\"reliabilitylab\"}[5m])) by (status)",
+          "legendFormat": "HTTP {{status}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never"
+          }
+        }
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 46 }
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["reliabilitylab", "slo", "sre", "error-budget"],
+  "templating": { "list": [] },
+  "time": { "from": "now-3h", "to": "now" },
+  "title": "Site Kubectl — SLO Dashboard",
+  "uid": "site-kubectl-slo"
+}

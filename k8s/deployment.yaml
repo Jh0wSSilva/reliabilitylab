@@ -1,0 +1,86 @@
+# Deployment principal da aplicação site-kubectl
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: site-kubectl
+  namespace: reliabilitylab
+  labels:
+    app.kubernetes.io/name: site-kubectl
+    app.kubernetes.io/part-of: reliabilitylab
+    app.kubernetes.io/component: web
+spec:
+  replicas: 2
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: site-kubectl
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: site-kubectl
+        app.kubernetes.io/part-of: reliabilitylab
+        app.kubernetes.io/component: web
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+      - name: site-kubectl
+        image: local/reliabilitylab-site-kubectl:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8000
+          name: http
+          protocol: TCP
+        envFrom:
+        - configMapRef:
+            name: site-kubectl-config
+        - secretRef:
+            name: site-kubectl-secret
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        # Probe de prontidão — verifica se o pod está pronto para receber tráfego
+        readinessProbe:
+          httpGet:
+            path: /api/health
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 3
+          successThreshold: 1
+          failureThreshold: 3
+        # Probe de vivência — reinicia o pod se não responder
+        livenessProbe:
+          httpGet:
+            path: /api/health
+            port: http
+          initialDelaySeconds: 15
+          periodSeconds: 20
+          timeoutSeconds: 3
+          successThreshold: 1
+          failureThreshold: 3
+        # Probe de inicialização — protege o pod durante startup lento
+        startupProbe:
+          httpGet:
+            path: /api/health
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          failureThreshold: 10
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+          runAsNonRoot: true
+          runAsUser: 10001
+          runAsGroup: 10001
+          capabilities:
+            drop:
+            - ALL

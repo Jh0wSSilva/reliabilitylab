@@ -1,0 +1,50 @@
+# =============================================================================
+# Chaos Engineering — Stress de Memória
+# Injeta consumo de memória para testar limites e OOMKill
+#
+# O que acontece:
+#   - Um container consome memória progressivamente
+#   - Se ultrapassar o limit, o Kubernetes mata o pod (OOMKilled)
+#   - Métricas de memória ficam visíveis no Grafana
+#
+# Como observar:
+#   kubectl top pods -n reliabilitylab
+#   kubectl get events -n reliabilitylab --sort-by='.lastTimestamp'
+#   kubectl describe pod -n reliabilitylab -l chaos-experiment=memory-stress
+# =============================================================================
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: chaos-memory-stress
+  namespace: reliabilitylab
+  labels:
+    app.kubernetes.io/part-of: reliabilitylab
+    chaos-experiment: memory-stress
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 120
+  template:
+    metadata:
+      labels:
+        chaos-experiment: memory-stress
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: memory-stress
+        image: containerstack/alpine-stress:latest
+        command:
+        - /bin/sh
+        - -c
+        - |
+          echo "=== Chaos Engineering: Stress de Memória ==="
+          echo "[CHAOS] Iniciando consumo de memória por 60 segundos..."
+          echo "[CHAOS] 1 worker consumindo 256MB de memória"
+          stress --vm 1 --vm-bytes 256M --timeout 60s
+          echo "[OK] Stress de memória finalizado."
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 200m
+            memory: 512Mi

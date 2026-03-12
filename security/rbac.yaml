@@ -1,0 +1,76 @@
+# =============================================================================
+# Segurança — RBAC (Role-Based Access Control)
+# Define papéis e permissões para diferentes tipos de acesso ao namespace
+#
+# Este arquivo demonstra como implementar o princípio do menor privilégio
+# em um ambiente Kubernetes.
+# =============================================================================
+
+# --- Role: Leitura (para dashboards e monitoramento) ---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: reliabilitylab-viewer
+  namespace: reliabilitylab
+  labels:
+    app.kubernetes.io/part-of: reliabilitylab
+rules:
+- apiGroups: [ "" ]
+  resources: [ "pods", "services", "configmaps", "events" ]
+  verbs: [ "get", "list", "watch" ]
+- apiGroups: [ "apps" ]
+  resources: [ "deployments", "replicasets" ]
+  verbs: [ "get", "list", "watch" ]
+- apiGroups: [ "networking.k8s.io" ]
+  resources: [ "ingresses", "networkpolicies" ]
+  verbs: [ "get", "list", "watch" ]
+- apiGroups: [ "autoscaling" ]
+  resources: [ "horizontalpodautoscalers" ]
+  verbs: [ "get", "list", "watch" ]
+---
+# --- Role: Deploy (para CI/CD e operadores) ---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: reliabilitylab-deployer
+  namespace: reliabilitylab
+  labels:
+    app.kubernetes.io/part-of: reliabilitylab
+rules:
+- apiGroups: [ "" ]
+  resources: [ "pods", "services", "configmaps", "secrets" ]
+  verbs: [ "get", "list", "watch", "create", "update", "patch" ]
+- apiGroups: [ "apps" ]
+  resources: [ "deployments" ]
+  verbs: [ "get", "list", "watch", "create", "update", "patch" ]
+- apiGroups: [ "networking.k8s.io" ]
+  resources: [ "ingresses" ]
+  verbs: [ "get", "list", "watch", "create", "update", "patch" ]
+- apiGroups: [ "" ]
+  resources: [ "pods/log" ]
+  verbs: [ "get", "list" ]
+---
+# --- RoleBinding: Viewer ---
+# Exemplo: associar um ServiceAccount de monitoramento
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: reliabilitylab-viewer-binding
+  namespace: reliabilitylab
+subjects:
+- kind: ServiceAccount
+  name: monitoring-viewer
+  namespace: reliabilitylab
+roleRef:
+  kind: Role
+  name: reliabilitylab-viewer
+  apiGroup: rbac.authorization.k8s.io
+---
+# --- ServiceAccount para monitoramento (exemplo) ---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: monitoring-viewer
+  namespace: reliabilitylab
+  labels:
+    app.kubernetes.io/part-of: reliabilitylab

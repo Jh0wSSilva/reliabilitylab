@@ -1,0 +1,91 @@
+# Dashboard Grafana para o site-kubectl
+# Importar via sidecar ou manualmente no Grafana
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "links": [],
+  "panels": [
+    {
+      "title": "Requisições por segundo",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "rate(http_requests_total{namespace=\"reliabilitylab\", service=\"site-kubectl\"}[5m])",
+          "legendFormat": "{{method}} {{status}}"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 }
+    },
+    {
+      "title": "Latência P99",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.99, rate(http_request_duration_seconds_bucket{namespace=\"reliabilitylab\", service=\"site-kubectl\"}[5m]))",
+          "legendFormat": "p99"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 }
+    },
+    {
+      "title": "Uso de CPU",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "rate(container_cpu_usage_seconds_total{namespace=\"reliabilitylab\", container=\"site-kubectl\"}[5m])",
+          "legendFormat": "{{pod}}"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 }
+    },
+    {
+      "title": "Uso de Memória",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "container_memory_working_set_bytes{namespace=\"reliabilitylab\", container=\"site-kubectl\"}",
+          "legendFormat": "{{pod}}"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 }
+    },
+    {
+      "title": "Status dos Pods",
+      "type": "stat",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "kube_deployment_status_replicas_available{namespace=\"reliabilitylab\", deployment=\"site-kubectl\"}",
+          "legendFormat": "Disponíveis"
+        }
+      ],
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 16 }
+    },
+    {
+      "title": "Restarts dos Pods",
+      "type": "stat",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(kube_pod_container_status_restarts_total{namespace=\"reliabilitylab\", container=\"site-kubectl\"})",
+          "legendFormat": "Restarts"
+        }
+      ],
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 16 }
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["reliabilitylab", "site-kubectl"],
+  "templating": { "list": [] },
+  "time": { "from": "now-1h", "to": "now" },
+  "title": "Site Kubectl — Visão Geral",
+  "uid": "site-kubectl-overview"
+}

@@ -1,0 +1,313 @@
+# =============================================================================
+# PrometheusRule — Regras de Alerta do ReliabilityLab
+#
+# Define alertas para:
+#   - Burn rate do error budget (SLO)
+#   - Taxa de erros alta
+#   - Latência alta
+#   - Pods em CrashLoopBackOff
+#   - Serviço indisponível
+#   - Consumo de recursos
+#
+# Instalação:
+#   kubectl apply -f observability/prometheus/alerts.yaml
+#
+# O kube-prometheus-stack detecta automaticamente PrometheusRules
+# no cluster quando serviceMonitorSelectorNilUsesHelmValues: false
+# =============================================================================
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: reliabilitylab-alerts
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/part-of: reliabilitylab
+    release: kube-prometheus-stack
+spec:
+  groups:
+
+  # =========================================================================
+  # Grupo 1: Alertas de SLO / Error Budget Burn Rate
+  # Baseado no modelo multi-window burn rate do Google SRE
+  # =========================================================================
+  - name: reliabilitylab.slo.burn-rate
+    rules:
+
+    # -----------------------------------------------------------------------
+    # Burn Rate Crítico — budget esgota em ~1 hora
+    # Janela curta (5m) + janela longa (1h)
+    # Burn rate > 14.4x significa consumo extremamente rápido
+    # Ação: investigação imediata
+    # -----------------------------------------------------------------------
+    - alert: SLOBurnRateCritical
+      annotations:
+        summary: "Burn rate crítico — error budget esgota em ~1h"
+        description: |
+          O burn rate do serviço site-kubectl está em {{ $value | printf "%.1f" }}x.
+          Com essa taxa, o error budget mensal esgota em aproximadamente 1 hora.
+          Investigação imediata necessária.
+        runbook_url: "docs/runbooks/incident-simulation.md"
+      expr: |
+        (
+          (1 - (
+            sum(rate(http_requests_total{namespace="reliabilitylab",status!~"5.."}[5m]))
+            /
+            sum(rate(http_requests_total{namespace="reliabilitylab"}[5m]))
+          )) / (1 - 0.999)
+        ) > 14.4
+        and
+        (
+          (1 - (
+            sum(rate(http_requests_total{namespace="reliabilitylab",status!~"5.."}[1h]))
+            /
+            sum(rate(http_requests_total{namespace="reliabilitylab"}[1h]))
+          )) / (1 - 0.999)
+        ) > 14.4
+      for: 2m
+      labels:
+        severity: critical
+        team: sre
+        slo: availability
+
+    # -----------------------------------------------------------------------
+    # Burn Rate Alto — budget esgota em ~6 horas
+    # Janela curta (30m) + janela longa (6h)
+    # Burn rate > 6x indica degradação significativa
+    # Ação: investigar dentro de 30 minutos
+    # -----------------------------------------------------------------------
+    - alert: SLOBurnRateHigh
+      annotations:
+        summary: "Burn rate alto — error budget esgota em ~6h"
+        description: |
+          O burn rate do serviço site-kubectl está em {{ $value | printf "%.1f" }}x.
+          Com essa taxa, o error budget mensal esgota em aproximadamente 6 horas.
+      expr: |
+        (
+          (1 - (
+            sum(rate(http_requests_total{namespace="reliabilitylab",status!~"5.."}[30m]))
+            /
+            sum(rate(http_requests_total{namespace="reliabilitylab"}[30m]))
+          )) / (1 - 0.999)
+        ) > 6
+        and
+        (
+          (1 - (
+            sum(rate(http_requests_total{namespace="reliabilitylab",status!~"5.."}[6h]))
+            /
+            sum(rate(http_requests_total{namespace="reliabilitylab"}[6h]))
+          )) / (1 - 0.999)
+        ) > 6
+      for: 5m
+      labels:
+        severity: warning
+        team: sre
+        slo: availability
+
+    # -----------------------------------------------------------------------
+    # Burn Rate Elevado — budget esgota em ~3 dias
+    # Janela de 3 dias para detectar degradação gradual
+    # Ação: planejar investigação no próximo ciclo
+    # -----------------------------------------------------------------------
+    - alert: SLOBurnRateWarning
+      annotations:
+        summary: "Burn rate elevado — error budget esgota em ~3 dias"
+        description: |
+          O burn rate do serviço site-kubectl indica consumo acelerado do error budget.
+          Investigue a causa durante o próximo ciclo de trabalho.
+      expr: |
+        (
+          (1 - (
+            sum(rate(http_requests_total{namespace="reliabilitylab",status!~"5.."}[6h]))
+            /
+            sum(rate(http_requests_total{namespace="reliabilitylab"}[6h]))
+          )) / (1 - 0.999)
+        ) > 2
+      for: 30m
+      labels:
+        severity: info
+        team: sre
+        slo: availability
+
+  # =========================================================================
+  # Grupo 2: Alertas de aplicação (taxa de erros, latência)
+  # =========================================================================
+  - name: reliabilitylab.application
+    rules:
+
+    # -----------------------------------------------------------------------
+    # Taxa de erros HTTP acima de 5% por 5 minutos
+    # Indica problema na aplicação (bugs, dependências falhando)
+    # -----------------------------------------------------------------------
+    - alert: HighErrorRate
+      annotations:
+        summary: "Taxa de erros HTTP acima de 5%"
+        description: |
+          {{ $value | printf "%.1f" }}% das requisições estão retornando erro 5xx
+          no namespace reliabilitylab nos últimos 5 minutos.
+      expr: |
+        (
+          sum(rate(http_requests_total{namespace="reliabilitylab",status=~"5.."}[5m]))
+          /
+          sum(rate(http_requests_total{namespace="reliabilitylab"}[5m]))
+        ) * 100 > 5
+      for: 5m
+      labels:
+        severity: critical
+        team: sre
+
+    # -----------------------------------------------------------------------
+    # Latência P95 acima de 1 segundo por 5 minutos
+    # Indica degradação de performance
+    # -----------------------------------------------------------------------
+    - alert: HighLatencyP95
+      annotations:
+        summary: "Latência P95 acima de 1 segundo"
+        description: |
+          O percentil 95 de latência está em {{ $value | printf "%.2f" }}s
+          para o serviço site-kubectl.
+      expr: |
+        histogram_quantile(0.95,
+          sum(rate(http_request_duration_seconds_bucket{namespace="reliabilitylab"}[5m])) by (le)
+        ) > 1
+      for: 5m
+      labels:
+        severity: warning
+        team: sre
+
+    # -----------------------------------------------------------------------
+    # Latência P99 acima de 3 segundos por 5 minutos
+    # Indica problema crítico de performance
+    # -----------------------------------------------------------------------
+    - alert: HighLatencyP99
+      annotations:
+        summary: "Latência P99 acima de 3 segundos"
+        description: |
+          O percentil 99 de latência atingiu {{ $value | printf "%.2f" }}s.
+          Possível saturação de recursos ou problema de backend.
+      expr: |
+        histogram_quantile(0.99,
+          sum(rate(http_request_duration_seconds_bucket{namespace="reliabilitylab"}[5m])) by (le)
+        ) > 3
+      for: 5m
+      labels:
+        severity: critical
+        team: sre
+
+  # =========================================================================
+  # Grupo 3: Alertas de infraestrutura Kubernetes
+  # =========================================================================
+  - name: reliabilitylab.infrastructure
+    rules:
+
+    # -----------------------------------------------------------------------
+    # Pods em CrashLoopBackOff — container reiniciando repetidamente
+    # Indica problema de configuração, OOM, ou bug fatal
+    # -----------------------------------------------------------------------
+    - alert: PodCrashLooping
+      annotations:
+        summary: "Pod em CrashLoopBackOff"
+        description: |
+          O container {{ $labels.container }} no pod {{ $labels.pod }}
+          reiniciou {{ $value | printf "%.0f" }} vezes nos últimos 15 minutos.
+      expr: |
+        increase(kube_pod_container_status_restarts_total{namespace="reliabilitylab"}[15m]) > 3
+      for: 5m
+      labels:
+        severity: critical
+        team: sre
+
+    # -----------------------------------------------------------------------
+    # Serviço sem pods disponíveis — indisponibilidade total
+    # -----------------------------------------------------------------------
+    - alert: ServiceUnavailable
+      annotations:
+        summary: "Serviço site-kubectl completamente indisponível"
+        description: |
+          Nenhum pod disponível para o deployment site-kubectl.
+          O serviço está completamente indisponível.
+      expr: |
+        kube_deployment_status_replicas_available{namespace="reliabilitylab",deployment="site-kubectl"} == 0
+      for: 1m
+      labels:
+        severity: critical
+        team: sre
+
+    # -----------------------------------------------------------------------
+    # Réplicas desejadas não atingidas — pods não estão Ready
+    # -----------------------------------------------------------------------
+    - alert: ReplicasMismatch
+      annotations:
+        summary: "Réplicas disponíveis menor que desejado"
+        description: |
+          O deployment site-kubectl tem {{ $value }} réplicas disponíveis,
+          menor que o número desejado.
+      expr: |
+        kube_deployment_status_replicas_available{namespace="reliabilitylab",deployment="site-kubectl"}
+        <
+        kube_deployment_spec_replicas{namespace="reliabilitylab",deployment="site-kubectl"}
+      for: 10m
+      labels:
+        severity: warning
+        team: sre
+
+    # -----------------------------------------------------------------------
+    # Uso de CPU acima de 90% do limit por mais de 10 minutos
+    # Indica possível throttling
+    # -----------------------------------------------------------------------
+    - alert: HighCPUUsage
+      annotations:
+        summary: "Uso de CPU acima de 90% do limit"
+        description: |
+          O container site-kubectl está usando {{ $value | printf "%.0f" }}%
+          do limit de CPU. Possível throttling detectado.
+      expr: |
+        (
+          sum(rate(container_cpu_usage_seconds_total{namespace="reliabilitylab",container="site-kubectl"}[5m]))
+          /
+          sum(kube_pod_container_resource_limits{namespace="reliabilitylab",container="site-kubectl",resource="cpu"})
+        ) * 100 > 90
+      for: 10m
+      labels:
+        severity: warning
+        team: sre
+
+    # -----------------------------------------------------------------------
+    # Uso de memória acima de 85% do limit
+    # Risco de OOMKill
+    # -----------------------------------------------------------------------
+    - alert: HighMemoryUsage
+      annotations:
+        summary: "Uso de memória acima de 85% do limit"
+        description: |
+          O container site-kubectl está usando {{ $value | printf "%.0f" }}%
+          do limit de memória. Risco de OOMKill.
+      expr: |
+        (
+          sum(container_memory_working_set_bytes{namespace="reliabilitylab",container="site-kubectl"})
+          /
+          sum(kube_pod_container_resource_limits{namespace="reliabilitylab",container="site-kubectl",resource="memory"})
+        ) * 100 > 85
+      for: 5m
+      labels:
+        severity: warning
+        team: sre
+
+    # -----------------------------------------------------------------------
+    # PVC com mais de 80% de uso (se aplicável)
+    # -----------------------------------------------------------------------
+    - alert: PVCAlmostFull
+      annotations:
+        summary: "Volume persistente quase cheio"
+        description: |
+          O PVC {{ $labels.persistentvolumeclaim }} está com 
+          {{ $value | printf "%.0f" }}% de uso.
+      expr: |
+        (
+          kubelet_volume_stats_used_bytes{namespace="reliabilitylab"}
+          /
+          kubelet_volume_stats_capacity_bytes{namespace="reliabilitylab"}
+        ) * 100 > 80
+      for: 10m
+      labels:
+        severity: warning
+        team: sre

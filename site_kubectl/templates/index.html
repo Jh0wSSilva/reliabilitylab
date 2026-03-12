@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+
+{% block breadcrumbs %}Home / Dashboard{% endblock %}
+
+{% block content %}
+<style>
+.hero { text-align: center; padding: 3.5rem 1rem 2.5rem; position: relative; }
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  padding: 0.4rem 1.2rem; background: rgba(0, 255, 136, 0.1);
+  color: var(--accent-neon); border-radius: 30px; font-size: 0.85rem;
+  font-weight: 600; margin-bottom: 1.5rem; border: 1px solid rgba(0, 255, 136, 0.2);
+  animation: pulse-badge 3s infinite;
+}
+@keyframes pulse-badge { 0%, 100% { box-shadow: 0 0 0 0 rgba(0,255,136,0.2); } 50% { box-shadow: 0 0 20px 4px rgba(0,255,136,0.15); } }
+
+.hero h1 {
+  font-size: 3rem; font-weight: 800;
+  background: linear-gradient(to right, var(--text-main), var(--text-muted));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  line-height: 1.2; margin-bottom: 1rem;
+}
+.hero .highlight {
+  background: linear-gradient(135deg, var(--accent-neon), var(--accent-blue));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  font-weight: 800; display: inline-block;
+}
+.hero p { max-width: 620px; margin: 0 auto 2rem; line-height: 1.7; color: var(--text-muted); font-size: 1.05rem; }
+
+/* Quick actions */
+.quick-actions { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; margin-bottom: 3rem; }
+.qa-btn {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  padding: 0.6rem 1.25rem; border-radius: 10px;
+  font-weight: 600; font-size: 0.88rem; text-decoration: none;
+  transition: all 0.25s; font-family: var(--font-ui);
+}
+.qa-primary {
+  background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+  color: #fff; box-shadow: 0 4px 12px var(--accent-purple-glow);
+}
+.qa-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 20px var(--accent-purple-glow); }
+.qa-outline {
+  background: rgba(0,0,0,0.2); color: var(--accent-neon);
+  border: 1px solid rgba(0,255,136,0.3);
+}
+.qa-outline:hover { border-color: var(--accent-neon); background: rgba(0,255,136,0.05); }
+
+/* Stats row */
+.stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.25rem; margin-bottom: 3rem; }
+.stat-card {
+  padding: 1.5rem; border-radius: 16px; border: 1px solid;
+  display: flex; flex-direction: column; gap: 0.5rem;
+  transition: transform 0.3s;
+}
+.stat-card:hover { transform: translateY(-3px); }
+.stat-card.blue   { background: rgba(59,130,246,0.08);  border-color: rgba(59,130,246,0.25); }
+.stat-card.purple { background: rgba(139,92,246,0.08); border-color: rgba(139,92,246,0.25); }
+.stat-card.green  { background: rgba(0,255,136,0.06);  border-color: rgba(0,255,136,0.2);  }
+.stat-card.amber  { background: rgba(245,158,11,0.08); border-color: rgba(245,158,11,0.25); }
+.stat-label { font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; }
+.stat-card.blue   .stat-label { color: var(--accent-blue); }
+.stat-card.purple .stat-label { color: var(--accent-purple); }
+.stat-card.green  .stat-label { color: var(--accent-neon); }
+.stat-card.amber  .stat-label { color: #f59e0b; }
+.stat-value { font-size: 2.4rem; font-weight: 800; color: var(--text-main); line-height: 1; }
+.stat-sub   { font-size: 0.8rem; color: var(--text-muted); }
+
+/* Learning path */
+.path-title { font-size: 1.5rem; font-weight: 700; margin-bottom: 1.5rem; color: var(--text-main); -webkit-text-fill-color: initial; background: none; }
+.path-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-bottom: 3rem; }
+.path-card {
+  background: var(--bg-secondary); backdrop-filter: blur(16px);
+  border: 1px solid var(--border-color); border-radius: 20px;
+  padding: 1.75rem; text-decoration: none; display: flex; flex-direction: column;
+  transition: all 0.4s ease; position: relative; overflow: hidden;
+}
+.path-card::after {
+  content: ''; position: absolute; bottom: 0; left: 0; right: 0;
+  height: 3px; background: linear-gradient(90deg, transparent, var(--accent-purple), transparent);
+  opacity: 0; transition: opacity 0.3s;
+}
+.path-card:hover { transform: translateY(-6px); box-shadow: 0 16px 40px rgba(0,0,0,0.4); border-color: var(--border-highlight); }
+.path-card:hover::after { opacity: 1; }
+.path-step {
+  display: inline-flex; align-items: center; gap: 0.3rem;
+  font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 1px; margin-bottom: 1rem;
+}
+.path-icon {
+  width: 52px; height: 52px; border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 1rem;
+}
+.path-name { font-size: 1.2rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.5rem; }
+.path-desc { font-size: 0.9rem; color: var(--text-muted); line-height: 1.6; flex: 1; }
+.path-arrow { margin-top: 1rem; color: var(--text-muted); font-size: 0.85rem; display: flex; align-items: center; gap: 0.4rem; }
+.path-card:hover .path-arrow { color: var(--accent-neon); }
+</style>
+
+<!-- Hero -->
+<div class="hero">
+  <div class="hero-badge">
+    <i data-lucide="zap" size="16"></i> Lab Environment Ready
+  </div>
+  <h1>
+    The Ultimate<br>
+    <span class="highlight">Container Orchestration</span> Platform.
+  </h1>
+  <p>
+    De zero absoluto ao deploy em produção — tutoriais completos, playground interativo e projetos reais com Docker & Kubernetes.
+  </p>
+  <div class="quick-actions">
+    <a href="/docker/introducao-docker" class="qa-btn qa-primary"><i data-lucide="play" size="15"></i> Primeiro Container</a>
+    <a href="/kubernetes/pods-kubernetes" class="qa-btn qa-outline"><i data-lucide="network" size="15"></i> Primeiro Pod</a>
+    <a href="/playground/" class="qa-btn qa-outline"><i data-lucide="terminal" size="15"></i> Abrir Playground</a>
+  </div>
+</div>
+
+<!-- Stats -->
+<div class="stats-row">
+  <div class="stat-card blue">
+    <span class="stat-label">Docker Tutorials</span>
+    <span class="stat-value">{{ docker_count }}</span>
+    <span class="stat-sub">De fundamentos a avançado</span>
+  </div>
+  <div class="stat-card purple">
+    <span class="stat-label">K8s Tutorials</span>
+    <span class="stat-value">{{ k8s_count }}</span>
+    <span class="stat-sub">Pods, Services, HPA, RBAC</span>
+  </div>
+  <div class="stat-card green">
+    <span class="stat-label">Real Projects</span>
+    <span class="stat-value">{{ stats.projects }}</span>
+    <span class="stat-sub">GitOps, ELK, Canary</span>
+  </div>
+  <div class="stat-card amber">
+    <span class="stat-label">Cheat Sheet Cmds</span>
+    <span class="stat-value">{{ cheat_count }}</span>
+    <span class="stat-sub">docker, kubectl, compose</span>
+  </div>
+</div>
+
+<!-- Learning Path -->
+<h2 class="path-title">🗺️ Trilha de Aprendizado</h2>
+<div class="path-grid">
+  <a href="/docker" class="path-card">
+    <span class="path-step" style="color: var(--accent-blue);">
+      <i data-lucide="circle-dot" size="12"></i> Passo 1
+    </span>
+    <div class="path-icon" style="background: rgba(59,130,246,0.1); color: var(--accent-blue);">
+      <i data-lucide="box" size="26"></i>
+    </div>
+    <div class="path-name">Docker Mastery</div>
+    <div class="path-desc">Construa, empacote e otimize aplicações com Dockerfile, Compose, Multi-stage e Networks.</div>
+    <span class="path-arrow"><i data-lucide="arrow-right" size="14"></i> Começar</span>
+  </a>
+
+  <a href="/kubernetes" class="path-card">
+    <span class="path-step" style="color: var(--accent-purple);">
+      <i data-lucide="circle-dot" size="12"></i> Passo 2
+    </span>
+    <div class="path-icon" style="background: rgba(139,92,246,0.1); color: var(--accent-purple);">
+      <i data-lucide="network" size="26"></i>
+    </div>
+    <div class="path-name">Kubernetes Deep Dive</div>
+    <div class="path-desc">Domine Pods, Deployments, Services, Ingress, HPA, RBAC e StatefulSets.</div>
+    <span class="path-arrow"><i data-lucide="arrow-right" size="14"></i> Começar</span>
+  </a>
+
+  <a href="/projects" class="path-card">
+    <span class="path-step" style="color: var(--accent-neon);">
+      <i data-lucide="circle-dot" size="12"></i> Passo 3
+    </span>
+    <div class="path-icon" style="background: rgba(0,255,136,0.08); color: var(--accent-neon);">
+      <i data-lucide="code-2" size="26"></i>
+    </div>
+    <div class="path-name">Projetos Reais</div>
+    <div class="path-desc">Blue/Green Deploy, GitOps com ArgoCD, ELK Stack, Autoscaling com k6 Load Test.</div>
+    <span class="path-arrow"><i data-lucide="arrow-right" size="14"></i> Começar</span>
+  </a>
+</div>
+
+{% endblock %}

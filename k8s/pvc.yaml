@@ -1,0 +1,16 @@
+# PersistentVolumeClaim — opcional para persistência de dados futura
+# A aplicação atual é stateless, mas o PVC fica preparado para evolução
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: site-kubectl-data
+  namespace: reliabilitylab
+  labels:
+    app.kubernetes.io/name: site-kubectl
+    app.kubernetes.io/part-of: reliabilitylab
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi

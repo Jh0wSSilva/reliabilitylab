@@ -1,0 +1,47 @@
+# ConfigMap para dashboard SLO do Grafana (carregado automaticamente pelo sidecar)
+# O label grafana_dashboard: "true" faz o sidecar do Grafana importar automaticamente
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: site-kubectl-slo-dashboard
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "true"
+    app.kubernetes.io/part-of: reliabilitylab
+data:
+  site-kubectl-slo.json: |
+    {
+      "uid": "site-kubectl-slo",
+      "title": "Site Kubectl — SLO Dashboard",
+      "tags": ["reliabilitylab", "slo", "sre", "error-budget"],
+      "panels": [
+        {
+          "title": "Disponibilidade Atual",
+          "type": "gauge",
+          "datasource": "Prometheus",
+          "targets": [{"expr": "sum(rate(http_requests_total{namespace='reliabilitylab',status!~'5..'}[30m])) / sum(rate(http_requests_total{namespace='reliabilitylab'}[30m])) * 100"}],
+          "gridPos": {"h": 8, "w": 6, "x": 0, "y": 0}
+        },
+        {
+          "title": "Error Budget Consumido",
+          "type": "gauge",
+          "datasource": "Prometheus",
+          "targets": [{"expr": "clamp_max(((1 - (sum(rate(http_requests_total{namespace='reliabilitylab',status!~'5..'}[1h])) / sum(rate(http_requests_total{namespace='reliabilitylab'}[1h])))) / (1 - 0.999)) * 100, 100)"}],
+          "gridPos": {"h": 8, "w": 6, "x": 6, "y": 0}
+        },
+        {
+          "title": "Burn Rate",
+          "type": "stat",
+          "datasource": "Prometheus",
+          "targets": [{"expr": "(1 - (sum(rate(http_requests_total{namespace='reliabilitylab',status!~'5..'}[1h])) / sum(rate(http_requests_total{namespace='reliabilitylab'}[1h])))) / (1 - 0.999)"}],
+          "gridPos": {"h": 8, "w": 6, "x": 12, "y": 0}
+        },
+        {
+          "title": "Latência P95",
+          "type": "gauge",
+          "datasource": "Prometheus",
+          "targets": [{"expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{namespace='reliabilitylab'}[5m])) by (le))"}],
+          "gridPos": {"h": 8, "w": 6, "x": 18, "y": 0}
+        }
+      ]
+    }

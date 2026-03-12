@@ -1,0 +1,189 @@
+# =============================================================================
+# Cenário de Chaos: Exaustão de Recursos (CPU + Memória)
+#
+# Injeta contenção de recursos nos pods do site-kubectl para simular:
+#   - Saturação de CPU (throttling)
+#   - Pressão de memória (risco de OOMKill)
+#
+# Usa pods "parasitas" que competem por recursos no mesmo namespace.
+#
+# Uso:
+#   kubectl apply -f chaos/scenarios/resource-exhaustion.yaml
+#
+# Limpar:
+#   kubectl delete -f chaos/scenarios/resource-exhaustion.yaml
+# =============================================================================
+
+# --- Stress de CPU ---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: chaos-cpu-exhaustion
+  namespace: reliabilitylab
+  labels:
+    app.kubernetes.io/part-of: reliabilitylab
+    chaos-scenario: resource-exhaustion
+spec:
+  ttlSecondsAfterFinished: 300
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        chaos-scenario: cpu-exhaustion
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: cpu-stress
+        image: containerstack/stress-ng:latest
+        command:
+        - stress-ng
+        - --cpu
+        - "4"
+        - --cpu-method
+        - matrixprod
+        - --timeout
+        - "120s"
+        - --metrics-brief
+        resources:
+          requests:
+            cpu: 500m
+            memory: 64Mi
+          limits:
+            cpu: "1"
+            memory: 128Mi
+---
+# --- Stress de Memória ---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: chaos-memory-exhaustion
+  namespace: reliabilitylab
+  labels:
+    app.kubernetes.io/part-of: reliabilitylab
+    chaos-scenario: resource-exhaustion
+spec:
+  ttlSecondsAfterFinished: 300
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        chaos-scenario: memory-exhaustion
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: memory-stress
+        image: containerstack/stress-ng:latest
+        command:
+        - stress-ng
+        - --vm
+        - "2"
+        - --vm-bytes
+        - 256M
+        - --timeout
+        - "120s"
+        - --metrics-brief
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 200m
+            memory: 512Mi
+---
+# --- Job Orquestrador (opcional) ---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: chaos-resource-sa
+  namespace: reliabilitylab
+  labels:
+    chaos-scenario: resource-exhaustion
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: chaos-resource-role
+  namespace: reliabilitylab
+rules:
+- apiGroups: ["batch"]
+  resources: ["jobs"]
+  verbs: ["get", "list"]
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list"]
+- apiGroups: ["metrics.k8s.io"]
+  resources: ["pods"]
+  verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: chaos-resource-binding
+  namespace: reliabilitylab
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: chaos-resource-role
+subjects:
+- kind: ServiceAccount
+  name: chaos-resource-sa
+  namespace: reliabilitylab
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: chaos-resource-monitor
+  namespace: reliabilitylab
+  labels:
+    app.kubernetes.io/part-of: reliabilitylab
+    chaos-scenario: resource-exhaustion
+spec:
+  ttlSecondsAfterFinished: 300
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        chaos-scenario: resource-monitor
+    spec:
+      serviceAccountName: chaos-resource-sa
+      restartPolicy: Never
+      containers:
+      - name: monitor
+        image: bitnami/kubectl:latest
+        command:
+        - /bin/sh
+        - -c
+        - |
+          echo "=========================================="
+          echo "  CHAOS: Monitoramento de Exaustão de Recursos"
+          echo "=========================================="
+          echo ""
+          echo "[$(date)] Jobs de stress criados em paralelo:"
+          echo "  - chaos-cpu-exhaustion: 4 workers de CPU por 120s"
+          echo "  - chaos-memory-exhaustion: 2 workers de 256MB por 120s"
+          echo ""
+          echo "[$(date)] Monitorando recursos a cada 15s..."
+          for i in $(seq 1 8); do
+            echo ""
+            echo "--- Amostra $i/8 ($(date)) ---"
+            echo "Pods do namespace:"
+            kubectl get pods -n reliabilitylab --no-headers 2>/dev/null || echo "  (erro ao listar pods)"
+            echo ""
+            echo "Top pods (se metrics-server disponível):"
+            kubectl top pods -n reliabilitylab 2>/dev/null || echo "  (metrics-server não disponível)"
+            sleep 15
+          done
+          echo ""
+          echo "=========================================="
+          echo "  MONITORAMENTO CONCLUÍDO — Verifique:"
+          echo "  1. HPA escalou réplicas? (kubectl get hpa -n reliabilitylab)"
+          echo "  2. Alertas HighCPUUsage/HighMemoryUsage dispararam?"
+          echo "  3. Latência degradou durante o stress?"
+          echo "=========================================="
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 100m
+            memory: 128Mi

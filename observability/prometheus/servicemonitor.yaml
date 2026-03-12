@@ -1,0 +1,22 @@
+# ServiceMonitor — configura Prometheus para coletar métricas do site-kubectl
+# Requer que a aplicação exponha /metrics (ou use OTel Collector como proxy)
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: site-kubectl
+  namespace: reliabilitylab
+  labels:
+    app.kubernetes.io/name: site-kubectl
+    app.kubernetes.io/part-of: reliabilitylab
+    release: kube-prometheus-stack
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: site-kubectl
+  endpoints:
+  - port: http
+    path: /api/health
+    interval: 30s
+  namespaceSelector:
+    matchNames:
+    - reliabilitylab

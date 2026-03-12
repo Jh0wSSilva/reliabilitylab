@@ -1,0 +1,62 @@
+# OpenTelemetry Collector — coleta métricas, logs e traces
+# Para ambiente local, opera como DaemonSet simplificado
+#
+# Instalação:
+#   helm repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm-charts
+#   helm upgrade --install otel-collector open-telemetry/opentelemetry-collector \
+#     -n monitoring --create-namespace \
+#     -f observability/otel/values.yaml
+
+mode: daemonset
+
+config:
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: 0.0.0.0:4317
+        http:
+          endpoint: 0.0.0.0:4318
+
+  processors:
+    batch:
+      timeout: 5s
+      send_batch_size: 1024
+    memory_limiter:
+      check_interval: 5s
+      limit_mib: 256
+
+  exporters:
+    # Exportar métricas para o Prometheus
+    prometheus:
+      endpoint: 0.0.0.0:8889
+      namespace: otel
+    # Exportar logs para o Loki
+    loki:
+      endpoint: http://loki.monitoring.svc.cluster.local:3100/loki/api/v1/push
+    # Exportar traces para o console (laboratório local)
+    debug:
+      verbosity: detailed
+
+  service:
+    pipelines:
+      metrics:
+        receivers: [ otlp ]
+        processors: [ memory_limiter, batch ]
+        exporters: [ prometheus ]
+      logs:
+        receivers: [ otlp ]
+        processors: [ memory_limiter, batch ]
+        exporters: [ loki ]
+      traces:
+        receivers: [ otlp ]
+        processors: [ memory_limiter, batch ]
+        exporters: [ debug ]
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 256Mi

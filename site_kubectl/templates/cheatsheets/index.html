@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block breadcrumbs %}Home / Cheat Sheets{% endblock %}
+
+{% block content %}
+<style>
+.cs-header { margin-bottom: 2rem; }
+.cs-filter-bar { display: flex; gap: 1rem; margin-bottom: 2.5rem; max-width: 600px; }
+.cs-filter-input {
+  flex: 1; padding: 0.85rem 1.5rem; border-radius: 30px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  color: var(--text-main); outline: none;
+  font-family: var(--font-ui); font-size: 0.95rem;
+  transition: border-color 0.2s;
+}
+.cs-filter-input:focus { border-color: var(--accent-purple); box-shadow: 0 0 0 3px var(--accent-purple-glow); }
+
+.cs-section { margin-bottom: 3rem; }
+.cs-section-title {
+  font-size: 1.2rem; font-weight: 700; margin-bottom: 1rem;
+  display: flex; align-items: center; gap: 0.75rem; padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border-color);
+}
+.cs-section-title i { color: var(--accent-purple); }
+.cs-count { font-size: 0.75rem; font-weight: 600; background: rgba(139,92,246,0.15); color: var(--accent-purple); padding: 0.15rem 0.6rem; border-radius: 20px; border: 1px solid rgba(139,92,246,0.3); }
+
+.cs-table-container {
+  border-radius: 14px; border: 1px solid var(--border-color);
+  background: var(--bg-secondary); overflow: hidden;
+}
+table { width: 100%; border-collapse: collapse; }
+thead tr { background: rgba(255,255,255,0.03); border-bottom: 1px solid var(--border-color); }
+th { padding: 0.85rem 1.25rem; text-align: left; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); }
+td { padding: 0.9rem 1.25rem; border-bottom: 1px solid rgba(255,255,255,0.04); vertical-align: top; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: rgba(255,255,255,0.025); }
+
+.cmd-code {
+  font-family: var(--font-code); font-size: 0.8rem;
+  background: rgba(0,0,0,0.4); padding: 0.3rem 0.7rem;
+  border-radius: 7px; color: var(--accent-neon);
+  border: 1px solid rgba(0,255,136,0.2);
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  cursor: pointer; transition: all 0.2s; position: relative;
+  white-space: nowrap;
+}
+.cmd-code:hover { border-color: rgba(0,255,136,0.5); background: rgba(0,255,136,0.05); }
+.cmd-code .cc-icon { opacity: 0.4; transition: opacity 0.2s; }
+.cmd-code:hover .cc-icon { opacity: 1; }
+
+.example-cell { font-family: var(--font-code); font-size: 0.78rem; color: #64748b; }
+.desc-cell { font-size: 0.88rem; color: var(--text-muted); line-height: 1.5; }
+
+.no-results { display: none; padding: 2rem; text-align: center; color: var(--text-muted); }
+</style>
+
+<div class="cs-header">
+  <h1>Cheat Sheets</h1>
+  <p>Referência rápida de comandos Docker e Kubernetes. Clique em qualquer comando para copiar.</p>
+</div>
+
+<div class="cs-filter-bar">
+  <input type="text" class="cs-filter-input" id="cheatFilter"
+         placeholder="🔍  Filtrar por comando, ação ou exemplo (ex: logs, rollout, scale)...">
+</div>
+
+{% for sheet in sheets %}
+<div class="cs-section" data-sheet="{{ loop.index }}">
+  <div class="cs-section-title">
+    <i data-lucide="{% if sheet.category == 'Docker' %}box{% else %}network{% endif %}" size="18"></i>
+    {{ sheet.title }}
+    <span class="cs-count">{{ sheet.commands | length }} comandos</span>
+  </div>
+  <div class="cs-table-container">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:35%">Comando</th>
+          <th style="width:40%">Descrição</th>
+          <th>Exemplo</th>
+        </tr>
+      </thead>
+      <tbody class="cheatTable">
+        {% for cmd in sheet.commands %}
+        <tr>
+          <td>
+            <span class="cmd-code" onclick="copyCmd(this, '{{ cmd.cmd | replace("'", "\\'") }}')">
+              {{ cmd.cmd }}
+              <i data-lucide="copy" size="11" class="cc-icon"></i>
+            </span>
+          </td>
+          <td class="desc-cell">{{ cmd.description }}</td>
+          <td class="example-cell">{{ cmd.example if cmd.example else '—' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <div class="no-results" id="no-{{ loop.index }}">Nenhum resultado para esse filtro.</div>
+  </div>
+</div>
+{% endfor %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function copyCmd(el, cmd) {
+  navigator.clipboard.writeText(cmd);
+  const icon = el.querySelector('[data-lucide]');
+  if (icon) {
+    icon.setAttribute('data-lucide', 'check');
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+    setTimeout(() => {
+      icon.setAttribute('data-lucide', 'copy');
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+    }, 1800);
+  }
+}
+
+const cheatFilter = document.getElementById('cheatFilter');
+if (cheatFilter) {
+  cheatFilter.addEventListener('input', e => {
+    const term = e.target.value.toLowerCase();
+    document.querySelectorAll('.cheatTable').forEach((tbody, idx) => {
+      let visible = 0;
+      tbody.querySelectorAll('tr').forEach(row => {
+        const match = row.innerText.toLowerCase().includes(term);
+        row.style.display = match ? '' : 'none';
+        if (match) visible++;
+      });
+      const noRes = document.getElementById('no-' + (idx + 1));
+      if (noRes) noRes.style.display = visible === 0 ? 'block' : 'none';
+    });
+  });
+}
+</script>
+{% endblock %}

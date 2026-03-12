@@ -1,0 +1,171 @@
+# =============================================================================
+# Alertmanager — Configuração de Roteamento e Notificações
+#
+# Este ConfigMap configura o Alertmanager para:
+#   1. Agrupar alertas por severidade e serviço
+#   2. Rotear alertas para diferentes receivers
+#   3. Simular notificações localmente (webhook + logs)
+#
+# Em ambiente de produção, os receivers seriam Slack, PagerDuty, etc.
+# Aqui usamos um webhook local para fins educacionais.
+#
+# Para aplicar esta configuração no kube-prometheus-stack,
+# adicione ao values.yaml ou aplique como Secret:
+#   kubectl create secret generic alertmanager-config \
+#     -n monitoring --from-file=alertmanager.yaml=config.yaml
+# =============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alertmanager-config
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/part-of: reliabilitylab
+data:
+  alertmanager.yaml: |
+    # Configuração global do Alertmanager
+    global:
+      # Tempo antes de declarar um alerta como resolvido
+      # se não receber atualização do Prometheus
+      resolve_timeout: 5m
+
+    # =========================================================================
+    # Roteamento de alertas
+    # Define como os alertas são agrupados e para onde são enviados
+    # =========================================================================
+    route:
+      # Receiver padrão — recebe tudo que não casa com rotas específicas
+      receiver: 'default-receiver'
+
+      # Agrupar alertas pelo mesmo grupo/alerta/namespace
+      # Alertas com os mesmos labels são agrupados numa única notificação
+      group_by: ['alertname', 'namespace', 'severity']
+
+      # Tempo para esperar antes de enviar a primeira notificação
+      # Permite agrupar alertas que disparam ao mesmo tempo
+      group_wait: 30s
+
+      # Intervalo entre notificações do mesmo grupo
+      group_interval: 5m
+
+      # Intervalo para reenviar notificação de alerta ainda ativo
+      repeat_interval: 4h
+
+      # Rotas filhas — processadas em ordem, a primeira que casar vence
+      routes:
+        # ---------------------------------------------------------------
+        # Rota 1: Alertas CRITICAL → canal urgente
+        # ---------------------------------------------------------------
+        - receiver: 'critical-receiver'
+          matchers:
+            - severity = "critical"
+          # Enviar imediatamente, sem esperar agrupamento
+          group_wait: 10s
+          group_interval: 1m
+          repeat_interval: 1h
+          continue: false
+
+        # ---------------------------------------------------------------
+        # Rota 2: Alertas WARNING → canal de operações
+        # ---------------------------------------------------------------
+        - receiver: 'warning-receiver'
+          matchers:
+            - severity = "warning"
+          group_wait: 30s
+          group_interval: 5m
+          repeat_interval: 4h
+          continue: false
+
+        # ---------------------------------------------------------------
+        # Rota 3: Alertas de SLO → canal dedicado de SRE
+        # ---------------------------------------------------------------
+        - receiver: 'slo-receiver'
+          matchers:
+            - slo =~ ".+"
+          group_by: ['slo', 'alertname']
+          group_wait: 30s
+          group_interval: 5m
+          repeat_interval: 2h
+          continue: false
+
+        # ---------------------------------------------------------------
+        # Rota 4: Alertas INFO → apenas logging
+        # ---------------------------------------------------------------
+        - receiver: 'info-receiver'
+          matchers:
+            - severity = "info"
+          group_wait: 1m
+          group_interval: 10m
+          repeat_interval: 12h
+
+    # =========================================================================
+    # Receivers — destinos das notificações
+    # Em ambiente local, usamos webhooks simulados e logs
+    # =========================================================================
+    receivers:
+      # ---------------------------------------------------------------
+      # Receiver padrão — log de alertas não categorizados
+      # ---------------------------------------------------------------
+      - name: 'default-receiver'
+        webhook_configs:
+          - url: 'http://alertmanager-webhook-logger.monitoring.svc.cluster.local:9095/webhook'
+            send_resolved: true
+
+      # ---------------------------------------------------------------
+      # Receiver crítico — alertas que exigem ação imediata
+      # Em produção: PagerDuty, Opsgenie ou Slack #incident
+      # ---------------------------------------------------------------
+      - name: 'critical-receiver'
+        webhook_configs:
+          - url: 'http://alertmanager-webhook-logger.monitoring.svc.cluster.local:9095/webhook/critical'
+            send_resolved: true
+
+      # ---------------------------------------------------------------
+      # Receiver de warning — alertas que precisam de atenção
+      # Em produção: Slack #alerts-warning
+      # ---------------------------------------------------------------
+      - name: 'warning-receiver'
+        webhook_configs:
+          - url: 'http://alertmanager-webhook-logger.monitoring.svc.cluster.local:9095/webhook/warning'
+            send_resolved: true
+
+      # ---------------------------------------------------------------
+      # Receiver de SLO — alertas de error budget
+      # Em produção: Slack #sre-slo-alerts
+      # ---------------------------------------------------------------
+      - name: 'slo-receiver'
+        webhook_configs:
+          - url: 'http://alertmanager-webhook-logger.monitoring.svc.cluster.local:9095/webhook/slo'
+            send_resolved: true
+
+      # ---------------------------------------------------------------
+      # Receiver informativo — apenas para logging
+      # ---------------------------------------------------------------
+      - name: 'info-receiver'
+        webhook_configs:
+          - url: 'http://alertmanager-webhook-logger.monitoring.svc.cluster.local:9095/webhook/info'
+            send_resolved: true
+
+    # =========================================================================
+    # Templates para formatar notificações (opcional)
+    # =========================================================================
+    templates: []
+
+    # =========================================================================
+    # Inibição de alertas
+    # Quando um alerta critical está ativo, suprime o warning do mesmo serviço
+    # =========================================================================
+    inhibit_rules:
+      # Se existe um critical, não enviar warning do mesmo namespace/alertname
+      - source_matchers:
+          - severity = "critical"
+        target_matchers:
+          - severity = "warning"
+        equal: ['namespace', 'alertname']
+
+      # Se o serviço está indisponível, não alertar sobre latência
+      - source_matchers:
+          - alertname = "ServiceUnavailable"
+        target_matchers:
+          - alertname =~ "HighLatency.*"
+        equal: ['namespace']

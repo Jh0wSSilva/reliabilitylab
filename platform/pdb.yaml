@@ -1,0 +1,15 @@
+# PodDisruptionBudget — garante disponibilidade mínima durante manutenção
+# Pelo menos 1 pod deve estar disponível durante disruptions voluntárias
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: site-kubectl-pdb
+  namespace: reliabilitylab
+  labels:
+    app.kubernetes.io/name: site-kubectl
+    app.kubernetes.io/part-of: reliabilitylab
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: site-kubectl

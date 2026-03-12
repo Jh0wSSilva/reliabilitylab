@@ -1,0 +1,15 @@
+# ConfigMap com variáveis de configuração não sensíveis
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: site-kubectl-config
+  namespace: reliabilitylab
+  labels:
+    app.kubernetes.io/name: site-kubectl
+    app.kubernetes.io/part-of: reliabilitylab
+    app.kubernetes.io/component: config
+data:
+  APP_ENV: "production"
+  LOG_LEVEL: "info"
+  APP_HOST: "0.0.0.0"
+  APP_PORT: "8000"

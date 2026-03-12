@@ -1,0 +1,8 @@
+# Namespace dedicado para o laboratório DevOps
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: reliabilitylab
+  labels:
+    app.kubernetes.io/part-of: reliabilitylab
+    purpose: devops-lab

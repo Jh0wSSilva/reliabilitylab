@@ -1,0 +1,397 @@
+{% extends "base.html" %}
+
+{% block breadcrumbs %}Home / Playground{% endblock %}
+
+{% block content %}
+<style>
+/* === Playground Full Layout === */
+.content-area { padding: 1.5rem 2rem; overflow: hidden; }
+
+.pg-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 1.25rem;
+}
+.pg-header-left { display: flex; align-items: center; gap: 1rem; }
+.pg-header h1 { margin-bottom: 0; font-size: 2.2rem; }
+
+.template-select {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid var(--accent-neon);
+  color: var(--accent-neon);
+  padding: 0.55rem 1.25rem;
+  border-radius: 8px;
+  font-family: var(--font-ui);
+  font-size: 0.9rem;
+  cursor: pointer;
+  outline: none;
+  transition: box-shadow 0.2s;
+}
+.template-select:hover { box-shadow: 0 0 12px var(--accent-neon-glow); }
+.template-select option { background: #0f172a; color: #fff; }
+
+/* Main two-column grid */
+.lab-container {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: 1.5rem;
+  height: calc(100vh - var(--header-height) - 130px);
+}
+
+/* Editor column */
+.editor-section { display: flex; flex-direction: column; gap: 0; min-height: 0; }
+
+.editor-toolbar {
+  display: flex; justify-content: space-between; align-items: center;
+  background: rgba(13, 17, 23, 0.9);
+  padding: 0.6rem 1rem;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-bottom: none;
+  border-radius: 12px 12px 0 0;
+}
+.editor-tab {
+  display: flex; align-items: center; gap: 0.5rem;
+  font-family: var(--font-code); font-size: 0.8rem;
+  color: var(--accent-neon);
+  background: rgba(0,255,136,0.06);
+  padding: 0.3rem 0.9rem; border-radius: 6px;
+  border: 1px solid rgba(0,255,136,0.15);
+}
+.dot { width: 8px; height: 8px; border-radius: 50%; }
+.dot-red { background: #ff5f56; }
+.dot-yellow { background: #ffbd2e; }
+.dot-green { background: #27c93f; }
+
+.cm-wrapper {
+  flex: 1; min-height: 0;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-top: none;
+  border-radius: 0 0 12px 12px;
+  overflow: hidden;
+  display: flex; flex-direction: column;
+}
+.cm-wrapper .CodeMirror {
+  flex: 1;
+  height: 100% !important;
+  font-family: var(--font-code) !important;
+  font-size: 13.5px;
+  background: #0d1117 !important;
+  line-height: 1.6;
+}
+
+/* Run button */
+.run-btn {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  background: linear-gradient(135deg, #7c3aed, #3b82f6);
+  border: none; color: #fff; font-weight: 700; font-size: 0.9rem;
+  padding: 0.5rem 1.25rem; border-radius: 8px; cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 15px rgba(124, 58, 237, 0.4);
+  font-family: var(--font-ui);
+}
+.run-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(124, 58, 237, 0.6); }
+.run-btn:active { transform: translateY(1px); }
+
+/* Right column */
+.results-column { display: flex; flex-direction: column; gap: 1rem; min-height: 0; }
+
+.terminal-panel {
+  flex: 1; min-height: 0;
+  background: rgba(2, 6, 14, 0.95);
+  border: 1px solid rgba(0, 255, 136, 0.2);
+  border-radius: 12px;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+.terminal-header {
+  display: flex; align-items: center; gap: 0.75rem;
+  padding: 0.6rem 1rem;
+  background: rgba(0, 255, 136, 0.04);
+  border-bottom: 1px solid rgba(0, 255, 136, 0.1);
+}
+.terminal-header-dots { display: flex; gap: 6px; }
+.terminal-title {
+  font-family: var(--font-code); font-size: 0.8rem;
+  color: rgba(0, 255, 136, 0.7); font-weight: 500;
+}
+.terminal-status {
+  margin-left: auto; font-size: 0.7rem; font-family: var(--font-code);
+  display: flex; align-items: center; gap: 0.4rem; color: rgba(0,255,136,0.5);
+}
+.status-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent-neon);
+  animation: blink 2s infinite;
+}
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+.terminal-body {
+  flex: 1; overflow-y: auto; padding: 1rem 1.25rem;
+  font-family: var(--font-code); font-size: 0.82rem; line-height: 1.7;
+  color: #33ff00; white-space: pre-wrap;
+}
+.terminal-body::-webkit-scrollbar-thumb { background: rgba(0,255,136,0.2); }
+
+/* Checklist panel */
+.hints-panel {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  font-size: 0.82rem;
+}
+.hints-title {
+  color: var(--accent-purple); font-weight: 700;
+  font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px;
+  margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.4rem;
+}
+.hint-list { display: flex; flex-direction: column; gap: 0.4rem; }
+.hint-item { color: var(--text-muted); display: flex; align-items: flex-start; gap: 0.5rem; }
+.hint-item i { color: var(--accent-neon); flex-shrink: 0; margin-top: 2px; }
+</style>
+
+<!-- Header -->
+<div class="pg-header">
+  <div class="pg-header-left">
+    <span class="tag advanced" style="margin-bottom:0">Hands-on Simulator</span>
+    <h1>The Playground</h1>
+  </div>
+  <select class="template-select" id="templateSelect">
+    <option value="deployment">📦 Template: Core Deployment</option>
+    <option value="service">🌐 Template: LoadBalancer Service</option>
+    <option value="hpa">📈 Template: HPA Autoscaler</option>
+    <option value="configmap">⚙️ Template: ConfigMap</option>
+    <option value="rbac">🔒 Template: RBAC Role</option>
+  </select>
+</div>
+
+<!-- Main Grid -->
+<div class="lab-container">
+
+  <!-- Editor Column -->
+  <div class="editor-section">
+    <div class="editor-toolbar">
+      <div style="display:flex; gap:6px; align-items:center;">
+        <span class="dot dot-red"></span>
+        <span class="dot dot-yellow"></span>
+        <span class="dot dot-green"></span>
+        <div class="editor-tab" style="margin-left:0.75rem;">
+          <i data-lucide="file-code" size="13"></i>
+          manifests/editor.yaml
+        </div>
+      </div>
+      <button class="run-btn" id="btnSimularApply">
+        <i data-lucide="play" size="15"></i> Validar (kubectl apply)
+      </button>
+    </div>
+    <div class="cm-wrapper">
+      <textarea id="labEditor"></textarea>
+    </div>
+  </div>
+
+  <!-- Results Column -->
+  <div class="results-column">
+
+    <!-- Terminal -->
+    <div class="terminal-panel">
+      <div class="terminal-header">
+        <div class="terminal-header-dots">
+          <span class="dot dot-red"></span>
+          <span class="dot dot-yellow"></span>
+          <span class="dot dot-green"></span>
+        </div>
+        <span class="terminal-title">remote-tty — k8s-cluster-1</span>
+        <span class="terminal-status"><span class="status-dot"></span> Connected</span>
+      </div>
+      <div class="terminal-body" id="terminalOutput">> kubernetes control-plane cluster v1.29
+> API Server standing by for manifest payloads...
+</div>
+    </div>
+
+    <!-- Hints panel -->
+    <div class="hints-panel">
+      <div class="hints-title"><i data-lucide="shield-check" size="14"></i> CI Checks Ativos</div>
+      <div class="hint-list">
+        <div class="hint-item"><i data-lucide="check-circle-2" size="13"></i> kind e apiVersion obrigatórios</div>
+        <div class="hint-item"><i data-lucide="check-circle-2" size="13"></i> Resource limits/requests em containers</div>
+        <div class="hint-item"><i data-lucide="check-circle-2" size="13"></i> Liveness/Readiness probes</div>
+        <div class="hint-item"><i data-lucide="check-circle-2" size="13"></i> Detecta imagem com tag :latest</div>
+        <div class="hint-item"><i data-lucide="check-circle-2" size="13"></i> metadata.name obrigatório</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const templates = {
+  deployment: `apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dynamic-web
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.24-alpine
+        ports:
+        - containerPort: 80`,
+
+  service: `apiVersion: v1
+kind: Service
+metadata:
+  name: web-service
+spec:
+  selector:
+    app: web
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+  type: LoadBalancer`,
+
+  hpa: `apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: api-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: api-deployment
+  minReplicas: 2
+  maxReplicas: 15
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70`,
+
+  configmap: `apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: default
+data:
+  APP_ENV: production
+  LOG_LEVEL: warning
+  CACHE_TTL: "3600"`,
+
+  rbac: `apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: producao
+  name: dev-reader
+rules:
+- apiGroups: [""]
+  resources: ["pods", "services"]
+  verbs: ["get", "watch", "list"]`
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+  const editorEl = document.getElementById('labEditor');
+  if (!editorEl) return;
+
+  const editor = CodeMirror.fromTextArea(editorEl, {
+    mode: "yaml",
+    theme: "material-darker",
+    lineNumbers: true,
+    tabSize: 2,
+    indentWithTabs: false,
+    lineWrapping: false,
+    autoCloseBrackets: true,
+    extraKeys: { "Tab": cm => cm.execCommand("insertSoftTab") }
+  });
+
+  editor.setValue(templates.deployment);
+  window.labEditorInstance = editor;
+
+  // Make editor fill its container
+  editor.setSize("100%", "100%");
+
+  // Template switcher
+  document.getElementById('templateSelect').addEventListener('change', e => {
+    editor.setValue(templates[e.target.value] || templates.deployment);
+  });
+
+  // Validate button
+  document.getElementById('btnSimularApply').addEventListener('click', async () => {
+    const content = editor.getValue();
+    const term = document.getElementById('terminalOutput');
+    
+    // Animate the button
+    const btn = document.getElementById('btnSimularApply');
+    btn.innerHTML = '<i data-lucide="loader-2" size="15" class="spin"></i> Running...';
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+
+    term.innerHTML = `<span style="color:#64748b">$ </span><span style="color:#e2e8f0">kubectl apply -f payload.yaml --server-side</span>\n\n`;
+
+    try {
+      const res = await fetch('/playground/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ yaml_content: content })
+      });
+      const data = await res.json();
+
+      // Simulate line-by-line rendering
+      const lines = [];
+
+      if (data.status === 'error') {
+        lines.push(`<span style="color:#ef4444">✗ [ERROR] ${data.message}</span>`);
+      } else {
+        lines.push(`<span style="color:#94a3b8">  Validating manifest schema...</span>`);
+        lines.push(`<span style="color:#94a3b8">  Running CI policy checks...</span>`);
+        
+        if (data.warnings && data.warnings.length > 0) {
+          data.warnings.forEach(w => {
+            lines.push(`<span style="color:#fbbf24">⚠ [WARN] ${w}</span>`);
+          });
+        } else {
+          lines.push(`<span style="color:#34d399">  ✓ All policy checks passed.</span>`);
+        }
+        
+        lines.push('');
+        lines.push(`<span style="color:#00ff88">✔ ${data.message}</span>`);
+        lines.push(`<span style="color:#00ff88">  Resource "${data.parsed_name}" applied successfully.</span>`);
+      }
+
+      // Render with staggered delay
+      let delay = 0;
+      lines.forEach(line => {
+        setTimeout(() => {
+          term.innerHTML += line + '\n';
+          term.scrollTop = term.scrollHeight;
+        }, delay);
+        delay += 120;
+      });
+
+    } catch (e) {
+      term.innerHTML += `<span style="color:#ef4444">✗ [ERROR] Network or Server Failure: ${e.message}</span>`;
+    }
+
+    // Restore button
+    setTimeout(() => {
+      btn.innerHTML = '<i data-lucide="play" size="15"></i> Validar (kubectl apply)';
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+    }, 800);
+  });
+});
+</script>
+<style>
+.spin { animation: spin 1s linear infinite; display: inline-block; }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+</style>
+{% endblock %}

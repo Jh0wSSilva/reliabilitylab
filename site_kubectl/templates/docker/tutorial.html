@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block breadcrumbs %}
+<a href="/docker" style="color:var(--text-muted); text-decoration:none;">Docker</a> / {{ tutorial.title }}
+{% endblock %}
+
+{% block content %}
+<div class="tutorial-layout">
+    <div class="tutorial-content">
+        <div class="ux-meta" style="margin-top: 1rem;">
+            <span class="time-badge"><i data-lucide="clock" size="14"></i> {{ tutorial.duration }} min read</span>
+            <span class="diff-badge">Level: 
+                <span class="diff-bars">
+                    {% for i in range(1, 6) %}
+                    <span class="bar {% if i <= tutorial.level %}on{% else %}off{% endif %}"></span>
+                    {% endfor %}
+                </span>
+            </span>
+        </div>
+        <h1 style="margin-bottom: 2rem;">{{ tutorial.title }}</h1>
+        
+        <div class="rendered-content">
+            {{ tutorial.content | safe }}
+        </div>
+
+        <div class="nav-buttons">
+            {% if prev_tut %}
+            <a href="/docker/{{ prev_tut.slug }}" class="btn-nav"><i data-lucide="arrow-left"></i> Previous: {{ prev_tut.title }}</a>
+            {% else %}
+            <div></div> <!-- Spacer -->
+            {% endif %}
+            
+            {% if next_tut %}
+            <a href="/docker/{{ next_tut.slug }}" class="btn-nav">Next: {{ next_tut.title }} <i data-lucide="arrow-right"></i></a>
+            {% else %}
+            <div></div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="tutorial-sidebar">
+        <div class="toc">
+            <h3>On this page</h3>
+            <ul id="toc-list">
+                <!-- Javascript will populate this based on H2 tags in content -->
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Simple TOC generator
+    document.addEventListener("DOMContentLoaded", () => {
+        const content = document.querySelector('.rendered-content');
+        const headers = content.querySelectorAll('h2, h3');
+        const tocList = document.getElementById('toc-list');
+        
+        headers.forEach((h, index) => {
+            if (!h.id) {
+                h.id = 'heading-' + index;
+            }
+            const li = document.createElement('li');
+            const a = document.createElement('a');
+            a.href = '#' + h.id;
+            a.innerText = h.innerText;
+            if (h.tagName.toLowerCase() === 'h3') {
+                li.style.marginLeft = '1rem';
+            }
+            li.appendChild(a);
+            tocList.appendChild(li);
+        });
+    });
+</script>
+{% endblock %}

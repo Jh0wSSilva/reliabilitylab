@@ -1,0 +1,241 @@
+[
+  {
+    "id": "k8s-1",
+    "title": "Instalação do kubectl e Minikube no Linux",
+    "slug": "instalacao-k8s-linux",
+    "category": "Instalação",
+    "level": 1,
+    "duration": 12,
+    "tags": [
+      "Linux",
+      "kubectl",
+      "Minikube",
+      "KinD",
+      "Instalação"
+    ],
+    "excerpt": "Instale o kubectl, Minikube e KinD no Linux para ter um cluster Kubernetes local pronto para uso.",
+    "content": "<h2>1. Instalar kubectl</h2><p>O <strong>kubectl</strong> é o CLI oficial para interagir com clusters Kubernetes. Ele funciona com qualquer cluster: local, cloud ou on-premises.</p><div class='code-wrapper'><div class='code-header'><span>kubectl via apt/snap</span><button class='copy-btn'><i data-lucide='copy' size='14'></i> Copy</button></div><pre><code class='language-bash'># Método 1: Download direto (sempre última versão)\ncurl -LO \"https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl\"\nsudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl\n\n# Método 2: Via snap\nsudo snap install kubectl --classic\n\n# Verificar\nkubectl version --client</code></pre></div><h2>2. Instalar Minikube</h2><div class='code-wrapper'><div class='code-header'><span>Minikube</span><button class='copy-btn'><i data-lucide='copy' size='14'></i> Copy</button></div><pre><code class='language-bash'>curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64\nsudo install minikube-linux-amd64 /usr/local/bin/minikube\n\n# Iniciar cluster (usa Docker como driver)\nminikube start --driver=docker\n\n# Verificar\nminikube status\nkubectl get nodes</code></pre></div><h2>3. Alternativa: KinD</h2><div class='code-wrapper'><div class='code-header'><span>KinD (Kubernetes in Docker)</span><button class='copy-btn'><i data-lucide='copy' size='14'></i> Copy</button></div><pre><code class='language-bash'># Instalar KinD\ncurl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.22.0/kind-linux-amd64\nchmod +x ./kind && sudo mv ./kind /usr/local/bin/kind\n\n# Criar cluster\nkind create cluster --name meu-lab\nkubectl cluster-info --context kind-meu-lab</code></pre></div><h2>4. Instalar Helm (Package Manager)</h2><div class='code-wrapper'><div class='code-header'><span>Helm</span><button class='copy-btn'><i data-lucide='copy' size='14'></i> Copy</button></div><pre><code class='language-bash'>curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash\nhelm version</code></pre></div>"
+  },
+  {
+    "id": "k8s-2",
+    "title": "Instalação do kubectl e Minikube no macOS",
+    "slug": "instalacao-k8s-mac",
+    "category": "Instalação",
+    "level": 1,
+    "duration": 10,
+    "tags": [
+      "macOS",
+      "kubectl",
+      "Minikube",
+      "Homebrew",
+      "Instalação"
+    ],
+    "excerpt": "Use Homebrew para instalar kubectl, Minikube e Helm no macOS com suporte a Apple Silicon.",
+    "content": "<h2>Via Homebrew (recomendado)</h2><p>O Homebrew é a forma mais simples de gerenciar pacotes no macOS. Todos os binários K8s estão disponíveis.</p><div class='code-wrapper'><div class='code-header'><span>Instalar tudo com Homebrew</span><button class='copy-btn'><i data-lucide='copy' size='14'></i> Copy</button></div><pre><code class='language-bash'># kubectl\nbrew install kubectl\nkubectl version --client\n\n# Minikube\nbrew install minikube\nminikube start --driver=docker\n\n# KinD (alternativa ao Minikube)\nbrew install kind\nkind create cluster --name lab\n\n# Helm\nbrew install helm\nhelm version\n\n# k9s (TUI para gerenciar K8s — altamente recomendado!)\nbrew install derailed/k9s/k9s</code></pre></div><h2>Docker Desktop com Kubernetes</h2><p>Se você já tem o Docker Desktop, ative o Kubernetes embutido:</p><div class='code-wrapper'><div class='code-header'><span>Ativar K8s no Docker Desktop</span><button class='copy-btn'><i data-lucide='copy' size='14'></i> Copy</button></div><pre><code class='language-text'>Docker Desktop → Settings → Kubernetes:\n  ✅ Enable Kubernetes\n  ✅ Show system containers\n\n# Aguarde ~2 min o cluster iniciar\nkubectl config get-contexts\nkubectl get nodes</code></pre></div><h2>Autocompletion</h2><div class='code-wrapper'><div class='code-header'><span>Ativar autocomplete no zsh</span><button class='copy-btn'><i data-lucide='copy' size='14'></i> Copy</button></div><pre><code class='language-bash'># Alias úteis\necho 'alias k=kubectl' >> ~/.zshrc\necho 'source <(kubectl completion zsh)' >> ~/.zshrc\necho 'complete -F __start_kubectl k' >> ~/.zshrc\nsource ~/.zshrc</code></pre></div>"
+  },
+  {
+    "id": "k8s-3",
+    "title": "Instalação do kubectl e Minikube no Windows (WSL 2)",
+    "slug": "instalacao-k8s-windows",
+    "category": "Instalação",
+    "level": 1,
+    "duration": 15,
+    "tags": [
+      "Windows",
+      "WSL2",
+      "kubectl",
+      "Minikube",
+      "Instalação"
+    ],
+    "excerpt": "Configure kubectl e Minikube dentro do WSL 2 no Windows para um ambiente Kubernetes completo.",
+    "content": "<h2>Pré-requisito: WSL 2 + Docker</h2><p>Antes de instalar o kubectl, garanta que você tem o WSL 2 e o Docker funcionando. Veja o tutorial de <a href='/docker/instalacao-docker-windows' style='color:var(--accent-neon)'>Instalação do Docker no Windows</a>.</p><h2>Instalar kubectl no WSL</h2><div class='code-wrapper'><div class='code-header'><span>kubectl no WSL Ubuntu</span><button class='copy-btn'><i data-lucide='copy' size='14'></i> Copy</button></div><pre><code class='language-bash'># Dentro do terminal WSL (Ubuntu):\ncurl -LO \"https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl\"\nsudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl\nkubectl version --client</code></pre></div><h2>Opção 1: Kubernetes via Docker Desktop</h2><div class='code-wrapper'><div class='code-header'><span>Ativar K8s embutido</span><button class='copy-btn'><i data-lucide='copy' size='14'></i> Copy</button></div><pre><code class='language-text'>Docker Desktop → Settings → Kubernetes:\n  ✅ Enable Kubernetes\n\n# No terminal WSL:\nkubectl config get-contexts\nkubectl get nodes</code></pre></div><h2>Opção 2: Minikube no WSL</h2><div class='code-wrapper'><div class='code-header'><span>Minikube no WSL 2</span><button class='copy-btn'><i data-lucide='copy' size='14'></i> Copy</button></div><pre><code class='language-bash'>curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64\nsudo install minikube-linux-amd64 /usr/local/bin/minikube\n\n# Iniciar com driver Docker\nminikube start --driver=docker\nminikube status\nkubectl get nodes</code></pre></div><h2>Opção 3: KinD no WSL</h2><div class='code-wrapper'><div class='code-header'><span>KinD</span><button class='copy-btn'><i data-lucide='copy' size='14'></i> Copy</button></div><pre><code class='language-bash'>curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.22.0/kind-linux-amd64\nchmod +x ./kind && sudo mv ./kind /usr/local/bin/kind\nkind create cluster --name lab\nkubectl get nodes</code></pre></div><h2>Dicas para Windows</h2><ul><li><strong>Performance</strong>: Sempre rode seus projetos dentro do WSL (<code>~/projetos</code>), nunca em <code>/mnt/c/</code></li><li><strong>VS Code</strong>: Use a extensão Remote - WSL do VS Code para editar código com IntelliSense completo</li><li><strong>Aliases</strong>: <code>echo 'alias k=kubectl' >> ~/.bashrc && source ~/.bashrc</code></li></ul>"
+  },
+  {
+    "id": "k8s-4",
+    "title": "Introdução ao Kubernetes — Por Que Orquestrar?",
+    "slug": "introducao-kubernetes",
+    "category": "Kubernetes Fundamentos",
+    "level": 1,
+    "duration": 10,
+    "tags": [
+      "Introdução",
+      "Arquitetura",
+      "Control Plane"
+    ],
+    "excerpt": "Entenda o problema que o Kubernetes resolve, sua arquitetura e os componentes do Control Plane e dos Worker Nodes.",
+    "content": "<h2>O Problema</h2><p>À medida que uma aplicação escala, gerenciar centenas de containers manualmente torna-se impossível. O <strong>Kubernetes (K8s)</strong> automatiza deploy, scaling, load balancing, self-healing e rolling updates.</p><h2>Arquitetura</h2><ul><li><strong>Control Plane</strong>: O cérebro do cluster. Contém o API Server, etcd, Scheduler e Controller Manager.</li><li><strong>Worker Nodes</strong>: Onde os Pods rodam. Contém kubelet, kube-proxy e o runtime de containers.</li><li><strong>etcd</strong>: Banco de dados chave-valor distribuído. Guarda todo o estado do cluster.</li></ul><h2>Primeiros Contatos</h2><div class='code-wrapper'><div class='code-header'><span>kubectl básico</span><button class='copy-btn'><i data-lucide='copy' size='14'></i> Copy</button></div><pre><code class='language-bash'># Verificar o cluster\nkubectl cluster-info\nkubectl get nodes\n\n# Ver todos os recursos no namespace default\nkubectl get all\n\n# Descrever um node\nkubectl describe node nome-do-node</code></pre></div>"
+  },
+  {
+    "id": "k8s-5",
+    "title": "Pods — A Unidade Básica do Kubernetes",
+    "slug": "pods-kubernetes",
+    "category": "Kubernetes Fundamentos",
+    "level": 1,
+    "duration": 12,
+    "tags": [
+      "Pods",
+      "Manifests",
+      "YAML"
+    ],
+    "excerpt": "Crie, inspecione e depure Pods usando manifestos YAML e entenda por que eles são efêmeros.",
+    "content": "<h2>O que é um Pod?</h2><p>Um Pod é o menor objeto deployável no K8s. Pode conter um ou mais containers que compartilham rede e armazenamento. Pods são <strong>efêmeros</strong> — quando morrem, não voltam. Por isso usamos Controllers.</p><div class='code-wrapper'><div class='code-header'><span>pod.yaml</span><button class='copy-btn'><i data-lucide='copy' size='14'></i> Copy</button></div><pre><code class='language-yaml'>apiVersion: v1\nkind: Pod\nmetadata:\n  name: meu-nginx\n  labels:\n    app: web\nspec:\n  containers:\n  - name: nginx\n    image: nginx:1.25-alpine\n    ports:\n    - containerPort: 80\n    resources:\n      requests:\n        cpu: 50m\n        memory: 64Mi\n      limits:\n        cpu: 200m\n        memory: 128Mi</code></pre></div><div class='code-wrapper'><div class='code-header'><span>Gerenciando Pods</span><button class='copy-btn'><i data-lucide='copy' size='14'></i> Copy</button></div><pre><code class='language-bash'>kubectl apply -f pod.yaml\nkubectl get pods\nkubectl describe pod meu-nginx\nkubectl logs meu-nginx\nkubectl exec -it meu-nginx -- /bin/sh\nkubectl delete pod meu-nginx</code></pre></div>"
+  },
+  {
+    "id": "k8s-6",
+    "title": "Deployments — Deploy Declarativo com ReplicaSets",
+    "slug": "deployments-kubernetes",
+    "category": "Kubernetes Fundamentos",
+    "level": 2,
+    "duration": 15,
+    "tags": [
+      "Deployment",
+      "ReplicaSet",
+      "Rolling Update"
+    ],
+    "excerpt": "Use Deployments para manter o número desejado de réplicas, fazer rolling updates e rollbacks automáticos.",
+    "content": "<h2>Por que Deployments?</h2><p>Pods são efêmeros. O <strong>Deployment</strong> gerencia um <em>ReplicaSet</em> que garante que sempre existam N réplicas do seu Pod. Se um Pod morrer, o Kubernetes cria um novo automaticamente (self-healing).</p><div class='code-wrapper'><div class='code-header'><span>deployment.yaml</span><button class='copy-btn'><i data-lucide='copy' size='14'></i> Copy</button></div><pre><code class='language-yaml'>apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: api-deployment\nspec:\n  replicas: 3\n  selector:\n    matchLabels:\n      app: api\n  strategy:\n    type: RollingUpdate\n    rollingUpdate:\n      maxSurge: 1\n      maxUnavailable: 0\n  template:\n    metadata:\n      labels:\n        app: api\n    spec:\n      containers:\n      - name: api\n        image: minha-api:v2.0\n        ports:\n        - containerPort: 8000\n        livenessProbe:\n          httpGet:\n            path: /api/health\n            port: 8000\n          initialDelaySeconds: 10\n        readinessProbe:\n          httpGet:\n            path: /api/ready\n            port: 8000</code></pre></div><div class='code-wrapper'><div class='code-header'><span>Operações de Deployment</span><button class='copy-btn'><i data-lucide='copy' size='14'></i> Copy</button></div><pre><code class='language-bash'># Atualizar a imagem (rolling update)\nkubectl set image deployment/api-deployment api=minha-api:v3.0\n\n# Acompanhar o rollout\nkubectl rollout status deployment/api-deployment\n\n# Ver histórico\nkubectl rollout history deployment/api-deployment\n\n# Fazer rollback!\nkubectl rollout undo deployment/api-deployment</code></pre></div>"
+  },
+  {
+    "id": "k8s-7",
+    "title": "Services — Expondo Aplicações com Rede Estável",
+    "slug": "services-kubernetes",
+    "category": "Kubernetes Fundamentos",
+    "level": 2,
+    "duration": 14,
+    "tags": [
+      "Service",
+      "ClusterIP",
+      "NodePort",
+      "LoadBalancer"
+    ],
+    "excerpt": "Entenda ClusterIP, NodePort e LoadBalancer para expor Pods internamente e para a internet.",
+    "content": "<h2>Tipos de Service</h2><ul><li><strong>ClusterIP</strong>: IP interno do cluster. Pods se comunicam por ele. Não é acessível fora do cluster.</li><li><strong>NodePort</strong>: Expõe a aplicação em uma porta de cada Node (30000-32767). Tráfego externo simples.</li><li><strong>LoadBalancer</strong>: Provisiona um LB externo (cloud). O tipo mais usado para produção.</li><li><strong>ExternalName</strong>: Mapeia o Service para um DNS externo.</li></ul><div class='code-wrapper'><div class='code-header'><span>service.yaml</span><button class='copy-btn'><i data-lucide='copy' size='14'></i> Copy</button></div><pre><code class='language-yaml'>apiVersion: v1\nkind: Service\nmetadata:\n  name: api-service\nspec:\n  type: LoadBalancer\n  selector:\n    app: api\n  ports:\n  - protocol: TCP\n    port: 80\n    targetPort: 8000</code></pre></div><div class='code-wrapper'><div class='code-header'><span>Comandos</span><button class='copy-btn'><i data-lucide='copy' size='14'></i> Copy</button></div><pre><code class='language-bash'>kubectl get services\nkubectl describe service api-service\n# Port-forward para testar localmente\nkubectl port-forward service/api-service 8080:80</code></pre></div>"
+  },
+  {
+    "id": "k8s-8",
+    "title": "ConfigMaps e Secrets — Configuração Externalizada",
+    "slug": "configmaps-secrets",
+    "category": "Kubernetes Fundamentos",
+    "level": 2,
+    "duration": 12,
+    "tags": [
+      "ConfigMap",
+      "Secret",
+      "Env Vars",
+      "Volume"
+    ],
+    "excerpt": "Separe configuração do código com ConfigMaps para dados comuns e Secrets para credenciais sensíveis.",
+    "content": "<h2>ConfigMap</h2><div class='code-wrapper'><div class='code-header'><span>configmap.yaml</span><button class='copy-btn'><i data-lucide='copy' size='14'></i> Copy</button></div><pre><code class='language-yaml'>apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: app-config\ndata:\n  APP_ENV: production\n  LOG_LEVEL: warning\n  CACHE_TTL: \"3600\"\n  nginx.conf: |\n    server {\n      listen 80;\n      location / { proxy_pass http://api:8000; }\n    }</code></pre></div><h2>Secret</h2><div class='code-wrapper'><div class='code-header'><span>secret.yaml (base64)</span><button class='copy-btn'><i data-lucide='copy' size='14'></i> Copy</button></div><pre><code class='language-yaml'>apiVersion: v1\nkind: Secret\nmetadata:\n  name: db-secret\ntype: Opaque\nstringData:\n  DB_PASSWORD: minhasenhasecreta\n  API_KEY: chave-super-secreta</code></pre></div><h2>Usando no Pod</h2><div class='code-wrapper'><div class='code-header'><span>Injetando como env vars</span><button class='copy-btn'><i data-lucide='copy' size='14'></i> Copy</button></div><pre><code class='language-yaml'>spec:\n  containers:\n  - name: api\n    envFrom:\n    - configMapRef:\n        name: app-config\n    env:\n    - name: DB_PASSWORD\n      valueFrom:\n        secretKeyRef:\n          name: db-secret\n          key: DB_PASSWORD</code></pre></div>"
+  },
+  {
+    "id": "k8s-9",
+    "title": "Ingress — Roteamento HTTP/HTTPS Inteligente",
+    "slug": "ingress-kubernetes",
+    "category": "Kubernetes Networking",
+    "level": 3,
+    "duration": 16,
+    "tags": [
+      "Ingress",
+      "Nginx",
+      "TLS",
+      "Routing"
+    ],
+    "excerpt": "Roteie tráfego HTTP externo para múltiplos serviços por hostname e path com um único ponto de entrada.",
+    "content": "<h2>O que é Ingress?</h2><p>O Ingress permite expor múltiplos serviços HTTP pelo mesmo IP externo, roteando por hostname ou path. Requer um <strong>Ingress Controller</strong> (geralmente Nginx) instalado no cluster.</p><div class='code-wrapper'><div class='code-header'><span>ingress.yaml com TLS</span><button class='copy-btn'><i data-lucide='copy' size='14'></i> Copy</button></div><pre><code class='language-yaml'>apiVersion: networking.k8s.io/v1\nkind: Ingress\nmetadata:\n  name: app-ingress\n  annotations:\n    nginx.ingress.kubernetes.io/rewrite-target: /\n    cert-manager.io/cluster-issuer: letsencrypt-prod\nspec:\n  tls:\n  - hosts:\n    - api.meusite.com\n    secretName: api-tls\n  rules:\n  - host: api.meusite.com\n    http:\n      paths:\n      - path: /api\n        pathType: Prefix\n        backend:\n          service:\n            name: api-service\n            port:\n              number: 80\n      - path: /\n        pathType: Prefix\n        backend:\n          service:\n            name: frontend-service\n            port:\n              number: 80</code></pre></div><div class='code-wrapper'><div class='code-header'><span>Instalar Nginx Ingress Controller</span><button class='copy-btn'><i data-lucide='copy' size='14'></i> Copy</button></div><pre><code class='language-bash'>helm upgrade --install ingress-nginx ingress-nginx \\\n  --repo https://kubernetes.github.io/ingress-nginx \\\n  --namespace ingress-nginx --create-namespace</code></pre></div>"
+  },
+  {
+    "id": "k8s-10",
+    "title": "StatefulSets e DaemonSets — Workloads Especializados",
+    "slug": "statefulsets-daemonsets",
+    "category": "Kubernetes Workloads",
+    "level": 4,
+    "duration": 16,
+    "tags": [
+      "StatefulSet",
+      "DaemonSet",
+      "Database",
+      "Monitoring"
+    ],
+    "excerpt": "Use StatefulSets para databases replicados e DaemonSets para agentes de monitoramento em cada node.",
+    "content": "<h2>StatefulSet</h2><p>Para aplicações que precisam de identidade estável e armazenamento persistente (bancos de dados, Kafka, Zookeeper). Cada Pod recebe um nome previsível: <code>mysql-0</code>, <code>mysql-1</code>...</p><div class='code-wrapper'><div class='code-header'><span>statefulset.yaml — MySQL Replicado</span><button class='copy-btn'><i data-lucide='copy' size='14'></i> Copy</button></div><pre><code class='language-yaml'>apiVersion: apps/v1\nkind: StatefulSet\nmetadata:\n  name: mysql\nspec:\n  serviceName: mysql\n  replicas: 3\n  selector:\n    matchLabels:\n      app: mysql\n  template:\n    metadata:\n      labels:\n        app: mysql\n    spec:\n      containers:\n      - name: mysql\n        image: mysql:8.0\n        env:\n        - name: MYSQL_ROOT_PASSWORD\n          valueFrom:\n            secretKeyRef:\n              name: mysql-secret\n              key: password\n        volumeMounts:\n        - name: data\n          mountPath: /var/lib/mysql\n  volumeClaimTemplates:\n  - metadata:\n      name: data\n    spec:\n      accessModes: [ReadWriteOnce]\n      resources:\n        requests:\n          storage: 20Gi</code></pre></div><h2>DaemonSet</h2><p>Garante que um Pod rode em <strong>todos os Nodes</strong>. Perfeito para coletores de logs (Fluentd), agentes de monitoring (node-exporter) e CNI plugins.</p><div class='code-wrapper'><div class='code-header'><span>daemonset.yaml — Fluentd logs</span><button class='copy-btn'><i data-lucide='copy' size='14'></i> Copy</button></div><pre><code class='language-yaml'>apiVersion: apps/v1\nkind: DaemonSet\nmetadata:\n  name: fluentd\n  namespace: kube-system\nspec:\n  selector:\n    matchLabels:\n      name: fluentd\n  template:\n    metadata:\n      labels:\n        name: fluentd\n    spec:\n      containers:\n      - name: fluentd\n        image: fluentd:v1.16\n        volumeMounts:\n        - name: varlog\n          mountPath: /var/log\n      volumes:\n      - name: varlog\n        hostPath:\n          path: /var/log</code></pre></div>"
+  },
+  {
+    "id": "k8s-11",
+    "title": "HPA e VPA — Auto-scaling Baseado em Métricas",
+    "slug": "hpa-vpa-autoscaling",
+    "category": "Kubernetes Escalabilidade",
+    "level": 4,
+    "duration": 18,
+    "tags": [
+      "HPA",
+      "VPA",
+      "Metrics Server",
+      "Autoscaling"
+    ],
+    "excerpt": "Configure o HPA para escalar réplicas automaticamente baseado em CPU/memória e custom metrics.",
+    "content": "<h2>Horizontal Pod Autoscaler (HPA)</h2><p>Escala o número de réplicas (<em>horizontal</em>) baseado em métricas. Requer o <strong>metrics-server</strong> instalado.</p><div class='code-wrapper'><div class='code-header'><span>hpa.yaml</span><button class='copy-btn'><i data-lucide='copy' size='14'></i> Copy</button></div><pre><code class='language-yaml'>apiVersion: autoscaling/v2\nkind: HorizontalPodAutoscaler\nmetadata:\n  name: api-hpa\nspec:\n  scaleTargetRef:\n    apiVersion: apps/v1\n    kind: Deployment\n    name: api-deployment\n  minReplicas: 2\n  maxReplicas: 20\n  metrics:\n  - type: Resource\n    resource:\n      name: cpu\n      target:\n        type: Utilization\n        averageUtilization: 70\n  - type: Resource\n    resource:\n      name: memory\n      target:\n        type: Utilization\n        averageUtilization: 80\n  behavior:\n    scaleDown:\n      stabilizationWindowSeconds: 300</code></pre></div><div class='code-wrapper'><div class='code-header'><span>Instalar metrics-server e monitorar</span><button class='copy-btn'><i data-lucide='copy' size='14'></i> Copy</button></div><pre><code class='language-bash'>kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml\n\nkubectl top pods\nkubectl top nodes\nkubectl get hpa\nkubectl describe hpa api-hpa</code></pre></div>"
+  },
+  {
+    "id": "k8s-12",
+    "title": "RBAC — Controle de Acesso Baseado em Papéis",
+    "slug": "rbac-kubernetes",
+    "category": "Kubernetes Segurança",
+    "level": 5,
+    "duration": 18,
+    "tags": [
+      "RBAC",
+      "Role",
+      "ServiceAccount",
+      "Segurança"
+    ],
+    "excerpt": "Implemente o princípio do menor privilégio com Roles, ClusterRoles, Bindings e ServiceAccounts.",
+    "content": "<h2>Componentes do RBAC</h2><ul><li><strong>Role / ClusterRole</strong>: Define o que pode ser feito (verbos: get, list, create, delete)</li><li><strong>RoleBinding / ClusterRoleBinding</strong>: Amarra quem pode fazer o que</li><li><strong>ServiceAccount</strong>: Identidade para Pods e processos dentro do cluster</li></ul><div class='code-wrapper'><div class='code-header'><span>RBAC completo</span><button class='copy-btn'><i data-lucide='copy' size='14'></i> Copy</button></div><pre><code class='language-yaml'>---\napiVersion: v1\nkind: ServiceAccount\nmetadata:\n  name: dev-serviceaccount\n  namespace: producao\n---\napiVersion: rbac.authorization.k8s.io/v1\nkind: Role\nmetadata:\n  namespace: producao\n  name: dev-reader\nrules:\n- apiGroups: [\"\"]\n  resources: [\"pods\", \"services\", \"configmaps\"]\n  verbs: [\"get\", \"watch\", \"list\"]\n- apiGroups: [\"apps\"]\n  resources: [\"deployments\"]\n  verbs: [\"get\", \"list\"]\n---\napiVersion: rbac.authorization.k8s.io/v1\nkind: RoleBinding\nmetadata:\n  name: dev-reader-binding\n  namespace: producao\nsubjects:\n- kind: ServiceAccount\n  name: dev-serviceaccount\nroleRef:\n  kind: Role\n  name: dev-reader\n  apiGroup: rbac.authorization.k8s.io</code></pre></div><div class='code-wrapper'><div class='code-header'><span>Testar permissões</span><button class='copy-btn'><i data-lucide='copy' size='14'></i> Copy</button></div><pre><code class='language-bash'># Verificar o que você pode fazer\nkubectl auth can-i create pods\nkubectl auth can-i delete deployments\n\n# Verificar como outro usuário/SA\nkubectl auth can-i create pods --as=system:serviceaccount:producao:dev-serviceaccount</code></pre></div>"
+  },
+  {
+    "id": "k8s-13",
+    "title": "NetworkPolicy — Segmentação de Rede no Cluster",
+    "slug": "networkpolicy-kubernetes",
+    "category": "Kubernetes Segurança",
+    "level": 5,
+    "duration": 16,
+    "tags": [
+      "NetworkPolicy",
+      "Firewall",
+      "Zero Trust"
+    ],
+    "excerpt": "Isole microsserviços com NetworkPolicies, criando regras de firewall declarativas entre Pods.",
+    "content": "<h2>Por que NetworkPolicy?</h2><p>Por padrão, qualquer Pod pode falar com qualquer outro no cluster. Com NetworkPolicy, você implementa <em>zero trust</em>: bloqueie tudo e libere apenas o necessário.</p><h2>Bloquear tudo e liberar seletivamente</h2><div class='code-wrapper'><div class='code-header'><span>deny-all + allow seletivo</span><button class='copy-btn'><i data-lucide='copy' size='14'></i> Copy</button></div><pre><code class='language-yaml'>---\n# 1. Negar todo tráfego de entrada no namespace\napiVersion: networking.k8s.io/v1\nkind: NetworkPolicy\nmetadata:\n  name: default-deny-ingress\n  namespace: producao\nspec:\n  podSelector: {}\n  policyTypes:\n  - Ingress\n---\n# 2. Liberar apenas: api pode receber do frontend\napiVersion: networking.k8s.io/v1\nkind: NetworkPolicy\nmetadata:\n  name: allow-frontend-to-api\n  namespace: producao\nspec:\n  podSelector:\n    matchLabels:\n      app: api\n  policyTypes:\n  - Ingress\n  ingress:\n  - from:\n    - podSelector:\n        matchLabels:\n          app: frontend\n    ports:\n    - protocol: TCP\n      port: 8000</code></pre></div>"
+  },
+  {
+    "id": "k8s-14",
+    "title": "Persistent Volumes e Storage Classes",
+    "slug": "persistent-volumes-storage",
+    "category": "Kubernetes Storage",
+    "level": 4,
+    "duration": 20,
+    "tags": [
+      "PV",
+      "PVC",
+      "StorageClass",
+      "Database"
+    ],
+    "excerpt": "Provisione storage dinâmico com PersistentVolumes e entenda como conectar Pods a volumes de longa duração.",
+    "content": "<h2>PV, PVC e StorageClass</h2><ul><li><strong>PersistentVolume (PV)</strong>: Resource do cluster que representa storage físico (NFS, Cloud Block, etc.)</li><li><strong>PersistentVolumeClaim (PVC)</strong>: Pedido de storage feito por um Pod. Como um 'ticket' de reserva.</li><li><strong>StorageClass</strong>: Define como os PVs são provisionados dinamicamente.</li></ul><div class='code-wrapper'><div class='code-header'><span>StorageClass + PVC</span><button class='copy-btn'><i data-lucide='copy' size='14'></i> Copy</button></div><pre><code class='language-yaml'>---\napiVersion: storage.k8s.io/v1\nkind: StorageClass\nmetadata:\n  name: fast-ssd\nprovisioner: kubernetes.io/aws-ebs\nparameters:\n  type: gp3\n  iops: \"3000\"\nreclaimPolicy: Retain\nvolumeBindingMode: WaitForFirstConsumer\n---\napiVersion: v1\nkind: PersistentVolumeClaim\nmetadata:\n  name: postgres-pvc\nspec:\n  storageClassName: fast-ssd\n  accessModes:\n  - ReadWriteOnce\n  resources:\n    requests:\n      storage: 50Gi</code></pre></div><div class='code-wrapper'><div class='code-header'><span>Usando PVC em um Pod</span><button class='copy-btn'><i data-lucide='copy' size='14'></i> Copy</button></div><pre><code class='language-yaml'>spec:\n  containers:\n  - name: postgres\n    image: postgres:16\n    volumeMounts:\n    - name: pgdata\n      mountPath: /var/lib/postgresql/data\n  volumes:\n  - name: pgdata\n    persistentVolumeClaim:\n      claimName: postgres-pvc</code></pre></div>"
+  },
+  {
+    "id": "k8s-15",
+    "title": "Taints, Tolerations e Node Affinity",
+    "slug": "taints-tolerations-affinity",
+    "category": "Kubernetes Escalabilidade",
+    "level": 5,
+    "duration": 18,
+    "tags": [
+      "Taints",
+      "Tolerations",
+      "Affinity",
+      "NodeSelector"
+    ],
+    "excerpt": "Controle onde seus Pods são agendados usando Taints/Tolerations para isolar workloads e Affinity para co-localizar.",
+    "content": "<h2>Taints e Tolerations</h2><p>Um <strong>Taint</strong> em um Node repele Pods. Uma <strong>Toleration</strong> em um Pod permite que ele seja agendado em Nodes com taint específico. Use para isolar cargas (GPU nodes, nodes de produção).</p><div class='code-wrapper'><div class='code-header'><span>Taint num Node específico</span><button class='copy-btn'><i data-lucide='copy' size='14'></i> Copy</button></div><pre><code class='language-bash'># Marcar node como dedicado para GPU\nkubectl taint nodes gpu-node-1 dedicated=gpu:NoSchedule\n\n# Remover taint\nkubectl taint nodes gpu-node-1 dedicated=gpu:NoSchedule-</code></pre></div><div class='code-wrapper'><div class='code-header'><span>Pod com Toleration + Node Affinity</span><button class='copy-btn'><i data-lucide='copy' size='14'></i> Copy</button></div><pre><code class='language-yaml'>spec:\n  tolerations:\n  - key: dedicated\n    value: gpu\n    effect: NoSchedule\n  affinity:\n    nodeAffinity:\n      requiredDuringSchedulingIgnoredDuringExecution:\n        nodeSelectorTerms:\n        - matchExpressions:\n          - key: node.kubernetes.io/instance-type\n            operator: In\n            values:\n            - g4dn.xlarge\n            - p3.2xlarge\n    podAntiAffinity:\n      preferredDuringSchedulingIgnoredDuringExecution:\n      - weight: 100\n        podAffinityTerm:\n          labelSelector:\n            matchLabels:\n              app: api\n          topologyKey: kubernetes.io/hostname</code></pre></div><p>O <code>podAntiAffinity</code> acima faz com que replicas do pod <code>api</code> sejam distribuídas em diferentes nodes, garantindo alta disponibilidade.</p>"
+  }
+]

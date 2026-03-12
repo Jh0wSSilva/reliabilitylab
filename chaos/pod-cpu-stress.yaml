@@ -1,0 +1,50 @@
+# =============================================================================
+# Chaos Engineering — Stress de CPU
+# Injeta carga de CPU nos pods para testar o comportamento sob pressão
+#
+# O que acontece:
+#   - Um container de stress roda no namespace consumindo CPU
+#   - O HPA pode escalar a aplicação em resposta
+#   - Métricas de CPU ficam visíveis no Grafana
+#
+# Como observar:
+#   kubectl top pods -n reliabilitylab
+#   kubectl get hpa -n reliabilitylab -w
+#   # No Grafana: dashboard de CPU usage
+# =============================================================================
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: chaos-cpu-stress
+  namespace: reliabilitylab
+  labels:
+    app.kubernetes.io/part-of: reliabilitylab
+    chaos-experiment: cpu-stress
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 120
+  template:
+    metadata:
+      labels:
+        chaos-experiment: cpu-stress
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: cpu-stress
+        image: containerstack/alpine-stress:latest
+        command:
+        - /bin/sh
+        - -c
+        - |
+          echo "=== Chaos Engineering: Stress de CPU ==="
+          echo "[CHAOS] Iniciando stress de CPU por 60 segundos..."
+          echo "[CHAOS] 2 workers consumindo CPU"
+          stress --cpu 2 --timeout 60s
+          echo "[OK] Stress de CPU finalizado."
+        resources:
+          requests:
+            cpu: 200m
+            memory: 64Mi
+          limits:
+            cpu: "1"
+            memory: 128Mi

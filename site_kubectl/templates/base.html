@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="K8s & Docker Lab Pro — plataforma interativa de aprendizado para Docker e Kubernetes com tutoriais, playground, projetos reais e cheat sheets.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
+  <title>K8s & Docker Lab Pro</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  
+  <!-- Highlight JS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/tokyo-night-dark.min.css">
+  
+  <!-- CodeMirror for Lab -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/material-darker.min.css">
+  
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+
+  <!-- Background Animated Orbs -->
+  <div class="bg-orbs">
+    <div class="orb orb-1"></div><div class="orb orb-2"></div><div class="orb orb-3"></div>
+  </div>
+
+  <!-- Sidebar Component -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <i data-lucide="hexagon" class="logo-icon"></i>
+      <a href="/" style="text-decoration: none; color: inherit;">DevOps Lab</a>
+    </div>
+    <div class="nav-links">
+      <div class="nav-title">General</div>
+      <a href="/" class="nav-item {% if request.url.path == '/' %}active{% endif %}"><i data-lucide="layout-dashboard"></i> Dashboard</a>
+      
+      <div class="nav-title">Learn Hub</div>
+      <a href="/docker" class="nav-item {% if '/docker' in request.url.path %}active{% endif %}"><i data-lucide="box"></i> Docker Mastery</a>
+      <a href="/kubernetes" class="nav-item {% if '/kubernetes' in request.url.path %}active{% endif %}"><i data-lucide="network"></i> Kubernetes Core</a>
+      <a href="/tools" class="nav-item {% if '/tools' in request.url.path %}active{% endif %}"><i data-lucide="wrench"></i> Ecossistema Tools</a>
+      
+      <div class="nav-title">Practice</div>
+      <a href="/playground" class="nav-item {% if '/playground' in request.url.path %}active{% endif %}"><i data-lucide="terminal-square"></i> K8s Playground</a>
+      <a href="/projects" class="nav-item {% if '/projects' in request.url.path %}active{% endif %}"><i data-lucide="folder-git-2"></i> Projetos Reais</a>
+      
+      <div class="nav-title">Resources</div>
+      <a href="/cheatsheets" class="nav-item {% if '/cheatsheets' in request.url.path %}active{% endif %}"><i data-lucide="file-code-2"></i> Cheat Sheets</a>
+    </div>
+  </aside>
+
+  <!-- Main Content Wrapper -->
+  <main class="main-wrapper" id="mainWrapper">
+    <!-- Topbar Component -->
+    <header class="topbar">
+      <div class="breadcrumbs-container">
+        <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle menu">
+          <i data-lucide="menu" size="20"></i>
+        </button>
+        <div class="breadcrumbs">
+            {% block breadcrumbs %}Home / Dashboard{% endblock %}
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <button class="search-btn" id="searchBtn">
+            <i data-lucide="search" size="18"></i> Search (Ctrl+K)
+        </button>
+        <button class="icon-btn" id="themeToggle" title="Toggle Theme">
+            <i data-lucide="sun" id="themeIcon"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- Page Content -->
+    <div class="content-area" id="contentArea">
+        {% block content %}{% endblock %}
+    </div>
+  </main>
+
+  <!-- Global Search Modal -->
+  <div class="modal-overlay" id="searchModal">
+    <div class="modal-content">
+        <input type="text" class="search-input" id="searchInput" placeholder="Search tutorials, commands, docs..." autocomplete="off">
+        <div class="search-results" id="searchResults"></div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/yaml/yaml.min.js"></script>
+  
+  <script src="/static/js/main.js"></script>
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

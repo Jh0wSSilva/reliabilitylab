@@ -1,0 +1,115 @@
+# =============================================================================
+# Cenário de Chaos: Eliminação Total de Pods
+#
+# Simula uma falha catastrófica onde TODOS os pods do serviço são destruídos.
+# Objetivo: validar que o Kubernetes recria os pods e o serviço volta ao normal.
+#
+# Uso:
+#   kubectl apply -f chaos/scenarios/total-pod-kill.yaml
+#
+# Observar:
+#   kubectl get pods -n reliabilitylab -w
+#   # Verificar HPA, alertas de SLO, e tempo de recuperação
+# =============================================================================
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: chaos-total-kill-sa
+  namespace: reliabilitylab
+  labels:
+    app.kubernetes.io/part-of: reliabilitylab
+    chaos-scenario: total-pod-kill
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: chaos-total-kill-role
+  namespace: reliabilitylab
+rules:
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list", "delete"]
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: chaos-total-kill-binding
+  namespace: reliabilitylab
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: chaos-total-kill-role
+subjects:
+- kind: ServiceAccount
+  name: chaos-total-kill-sa
+  namespace: reliabilitylab
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: chaos-total-pod-kill
+  namespace: reliabilitylab
+  labels:
+    app.kubernetes.io/part-of: reliabilitylab
+    chaos-scenario: total-pod-kill
+spec:
+  ttlSecondsAfterFinished: 300
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        chaos-scenario: total-pod-kill
+    spec:
+      serviceAccountName: chaos-total-kill-sa
+      restartPolicy: Never
+      containers:
+      - name: total-pod-kill
+        image: bitnami/kubectl:latest
+        command:
+        - /bin/sh
+        - -c
+        - |
+          echo "=========================================="
+          echo "  CHAOS: Eliminação Total de Pods"
+          echo "=========================================="
+          echo ""
+          echo "[$(date)] Listando pods atuais do site-kubectl..."
+          kubectl get pods -n reliabilitylab -l app=site-kubectl
+          echo ""
+          PODS=$(kubectl get pods -n reliabilitylab -l app=site-kubectl -o name)
+          TOTAL=$(echo "$PODS" | wc -l)
+          echo "[$(date)] Total de pods encontrados: $TOTAL"
+          echo ""
+          echo "[$(date)] EXECUTANDO: Deletando TODOS os pods simultaneamente..."
+          kubectl delete pods -n reliabilitylab -l app=site-kubectl --grace-period=0 --force 2>/dev/null || \
+            kubectl delete pods -n reliabilitylab -l app=site-kubectl
+          echo ""
+          echo "[$(date)] Todos os pods foram eliminados."
+          echo "[$(date)] Aguardando 10s para observar a recriação..."
+          sleep 10
+          echo ""
+          echo "[$(date)] Status atual dos pods:"
+          kubectl get pods -n reliabilitylab -l app=site-kubectl
+          echo ""
+          echo "[$(date)] Aguardando pods ficarem Ready (timeout 120s)..."
+          kubectl wait --for=condition=Ready pods -l app=site-kubectl -n reliabilitylab --timeout=120s
+          echo ""
+          echo "[$(date)] Status final:"
+          kubectl get pods -n reliabilitylab -l app=site-kubectl
+          echo ""
+          echo "=========================================="
+          echo "  CHAOS CONCLUÍDO — Verifique:"
+          echo "  1. Tempo de recuperação no Grafana"
+          echo "  2. Alertas disparados no Prometheus"
+          echo "  3. Consumo do Error Budget"
+          echo "=========================================="
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 100m
+            memory: 128Mi

@@ -1,0 +1,32 @@
+# ArgoCD Application — gerenciamento GitOps do site-kubectl
+# O ArgoCD monitora este repositório e aplica os manifests automaticamente
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: site-kubectl
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: reliabilitylab
+spec:
+  project: default
+  source:
+    # Apontar para o repositório local ou remoto
+    repoURL: https://github.com/Jh0wSSilva/reliabilitylab.git
+    targetRevision: main
+    path: k8s
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: reliabilitylab
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true
+    - ApplyOutOfSyncOnly=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m

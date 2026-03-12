@@ -1,0 +1,65 @@
+# =============================================================================
+# Chaos Engineering — Latência de Rede
+# Simula degradação de rede injetando latência via tc (traffic control)
+#
+# O que acontece:
+#   - Latência artificial é adicionada à rede do pod
+#   - Tempo de resposta da aplicação aumenta
+#   - Métricas de latência (p99, p95) ficam visíveis no Grafana
+#
+# Pré-requisito: Executar manualmente com kubectl exec
+#
+# Como executar manualmente:
+#   # Entrar no pod (requer container com tc/iproute2)
+#   kubectl exec -it -n reliabilitylab <pod-name> -- sh
+#   # Adicionar 200ms de latência
+#   tc qdisc add dev eth0 root netem delay 200ms
+#   # Remover latência
+#   tc qdisc del dev eth0 root netem
+#
+# Alternativa: usar o Job abaixo com um container auxiliar no mesmo namespace
+# =============================================================================
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: chaos-network-latency
+  namespace: reliabilitylab
+  labels:
+    app.kubernetes.io/part-of: reliabilitylab
+    chaos-experiment: network-latency
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 120
+  template:
+    metadata:
+      labels:
+        chaos-experiment: network-latency
+    spec:
+      serviceAccountName: chaos-sa
+      restartPolicy: Never
+      containers:
+      - name: network-test
+        image: bitnami/kubectl:latest
+        command:
+        - /bin/sh
+        - -c
+        - |
+          echo "=== Chaos Engineering: Teste de Latência de Rede ==="
+          echo ""
+          echo "[INFO] Medindo latência normal para a aplicação..."
+          for i in 1 2 3; do
+            START=$(date +%s%N)
+            kubectl exec -n reliabilitylab \
+              $(kubectl get pod -n reliabilitylab -l app.kubernetes.io/name=site-kubectl -o jsonpath='{.items[0].metadata.name}') \
+              -- python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health')" 2>/dev/null
+            END=$(date +%s%N)
+            DIFF=$(( (END - START) / 1000000 ))
+            echo "  Requisição ${i}: ${DIFF}ms"
+          done
+          echo ""
+          echo "[INFO] Para injetar latência real, use ferramentas como:"
+          echo "  - LitmusChaos (recomendado)"
+          echo "  - Chaos Mesh"
+          echo "  - tc/netem manualmente nos pods"
+          echo ""
+          echo "[OK] Teste de baseline de rede concluído."

@@ -1,0 +1,42 @@
+# NetworkPolicy — política de rede zero-trust
+# Permite apenas tráfego de entrada via Ingress e do Prometheus (scrape)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: site-kubectl-netpol
+  namespace: reliabilitylab
+  labels:
+    app.kubernetes.io/name: site-kubectl
+    app.kubernetes.io/part-of: reliabilitylab
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: site-kubectl
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Permitir tráfego do Ingress Controller (namespace ingress-nginx)
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: ingress-nginx
+    ports:
+    - protocol: TCP
+      port: 8000
+  # Permitir scrape do Prometheus (namespace monitoring)
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: monitoring
+    ports:
+    - protocol: TCP
+      port: 8000
+  egress:
+  # Permitir resolução DNS
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53

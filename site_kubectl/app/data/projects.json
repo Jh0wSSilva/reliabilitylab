@@ -1,0 +1,186 @@
+[
+  {
+    "id": "proj-1",
+    "name": "Local K8s Cluster com KinD ou Minikube",
+    "level": "Beginner",
+    "category": "Setup",
+    "duration": 30,
+    "icon": "server",
+    "tech": ["KinD", "Minikube", "kubectl", "Docker"],
+    "description": "Suba um cluster Kubernetes local multi-node em minutos sem precisar de cloud.",
+    "explanation": "Antes de subir qualquer coisa em produção, você precisa de um ambiente de laboratório local. O KinD (Kubernetes In Docker) é a ferramenta perfeita para isso: ele cria nodes Kubernetes como containers Docker, permitindo simular clusters multi-node (control plane + workers) em um único laptop sem custo. O Minikube é a alternativa mais simples para um único node. Neste projeto você aprenderá a criar clusters descartáveis para testes, configurar o kubectl para gerenciar múltiplos contextos, fazer deploy de uma aplicação de teste completa com Service e acessar o Dashboard visual do Kubernetes para inspecionar recursos.",
+    "objectives": [
+      "Criar cluster local multi-node (1 control plane + 2 workers)",
+      "Configurar e alternar entre contextos no kubectl",
+      "Deploy de aplicação com Deployment + Service",
+      "Acessar o Kubernetes Dashboard UI"
+    ],
+    "steps": [
+      {"title": "Instalar KinD", "cmd": "curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.22.0/kind-linux-amd64\nchmod +x ./kind && sudo mv ./kind /usr/local/bin/kind\nkind version"},
+      {"title": "Criar cluster multi-node com config YAML", "cmd": "cat <<EOF | kind create cluster --name lab --config=-\nkind: Cluster\napiVersion: kind.x-k8s.io/v1alpha4\nnodes:\n- role: control-plane\n- role: worker\n- role: worker\nEOF"},
+      {"title": "Verificar nodes e contexto", "cmd": "kubectl config use-context kind-lab\nkubectl get nodes -o wide\nkubectl cluster-info"},
+      {"title": "Deploy de aplicação de teste", "cmd": "kubectl create deployment hello --image=nginx:alpine --replicas=3\nkubectl expose deployment hello --port=80 --type=NodePort\nkubectl get pods,svc --watch"}
+    ]
+  },
+  {
+    "id": "proj-2",
+    "name": "Microsserviços: Auth + API + Frontend",
+    "level": "Intermediate",
+    "category": "Micro-services",
+    "duration": 60,
+    "icon": "network",
+    "tech": ["Kubernetes", "ClusterIP", "Ingress", "React", "Node.js"],
+    "description": "Arquitetura real de 3 camadas: Autenticação, API REST e SPA React comunicando-se via Services K8s.",
+    "explanation": "Este projeto simula uma arquitetura de microsserviços real como você encontrará em empresas. O serviço de Auth (JWT) fica isolado na rede interna via ClusterIP — completamente invisível para a internet. A API Node.js se comunica com o Auth internamente usando o DNS do Kubernetes (http://auth-svc:3001) e com o banco de dados da mesma forma. Apenas o Frontend React é exposto ao mundo externo via Ingress. Você aprenderá como o Kubernetes atua como um 'roteador inteligente' entre os serviços, por que ClusterIP é mais seguro que NodePort para comunicação interna e como injetar URLs de serviços como variáveis de ambiente para desacoplar os microsserviços.",
+    "objectives": [
+      "Deploy independente de 3 microsserviços",
+      "Comunicação interna Auth↔API via ClusterIP e DNS K8s",
+      "Exposição apenas do Frontend via Ingress com TLS",
+      "Injetar URLs de serviços via ConfigMap e Secret"
+    ],
+    "steps": [
+      {"title": "Deploy Auth Service (ClusterIP — somente interno)", "cmd": "kubectl apply -f - <<EOF\napiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: auth-service\nspec:\n  replicas: 2\n  selector:\n    matchLabels:\n      app: auth\n  template:\n    metadata:\n      labels:\n        app: auth\n    spec:\n      containers:\n      - name: auth\n        image: node:20-alpine\n        env:\n        - name: JWT_SECRET\n          valueFrom:\n            secretKeyRef:\n              name: auth-secrets\n              key: jwt-secret\n---\napiVersion: v1\nkind: Service\nmetadata:\n  name: auth-svc\nspec:\n  selector:\n    app: auth\n  ports:\n  - port: 3001\n  type: ClusterIP\nEOF"},
+      {"title": "Deploy API apontando para Auth via DNS", "cmd": "kubectl create secret generic auth-secrets --from-literal=jwt-secret=super-secreto-123\nkubectl set env deployment/api AUTH_URL=http://auth-svc:3001"},
+      {"title": "Deploy Frontend e Ingress", "cmd": "kubectl apply -f frontend-deployment.yaml\nkubectl apply -f - <<EOF\napiVersion: networking.k8s.io/v1\nkind: Ingress\nmetadata:\n  name: frontend-ingress\nspec:\n  rules:\n  - host: meuapp.local\n    http:\n      paths:\n      - path: /api\n        pathType: Prefix\n        backend:\n          service:\n            name: api-svc\n            port:\n              number: 80\n      - path: /\n        pathType: Prefix\n        backend:\n          service:\n            name: frontend-svc\n            port:\n              number: 80\nEOF"}
+    ]
+  },
+  {
+    "id": "proj-3",
+    "name": "Blue/Green Deploy com Zero Downtime",
+    "level": "Advanced",
+    "category": "Zero Downtime",
+    "duration": 45,
+    "icon": "git-branch",
+    "tech": ["Kubernetes", "Service Selectors", "Labels", "Rollback"],
+    "description": "Rode v1 (Blue) e v2 (Green) em paralelo e troque o tráfego instantaneamente mudando o selector do Service.",
+    "explanation": "O Blue/Green é uma das estratégias de deploy mais poderosas para Zero Downtime. A ideia é manter DUAS versões completas rodando simultaneamente: a versão Blue (atual, produção) e a Green (nova, em teste). O Service do Kubernetes aponta para Blue pelo selector. Quando você quer promover a Green, basta mudar o selector do Service com um único comando — o tráfego muda em milissegundos, sem downtime. Se der problema, reverter é igualmente instantâneo. A diferença do Rolling Update é que o Blue/Green permite testar a Green em isolamento antes de promover, usando port-forward ou um Ingress separado de staging. É a estratégia que empresas como Netflix e Amazon usam.",
+    "objectives": [
+      "Manter Blue (v1) e Green (v2) rodando simultaneamente",
+      "Testar Green em isolamento via port-forward",
+      "Trocar 100% do tráfego instantaneamente sem downtime",
+      "Rollback em 1 comando com patch no Service selector"
+    ],
+    "steps": [
+      {"title": "Deploy Blue (v1 — produção)", "cmd": "kubectl apply -f - <<EOF\napiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: web-blue\nspec:\n  replicas: 3\n  selector:\n    matchLabels:\n      app: web\n      version: blue\n  template:\n    metadata:\n      labels:\n        app: web\n        version: blue\n    spec:\n      containers:\n      - name: web\n        image: nginx:1.24\n---\napiVersion: v1\nkind: Service\nmetadata:\n  name: web-svc\nspec:\n  selector:\n    app: web\n    version: blue\n  ports:\n  - port: 80\nEOF"},
+      {"title": "Deploy Green (v2 — staging silencioso)", "cmd": "kubectl apply -f - <<EOF\napiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: web-green\nspec:\n  replicas: 3\n  selector:\n    matchLabels:\n      app: web\n      version: green\n  template:\n    metadata:\n      labels:\n        app: web\n        version: green\n    spec:\n      containers:\n      - name: web\n        image: nginx:1.25\nEOF\n# Testar Green sem expor ao público:\nkubectl port-forward deployment/web-green 8081:80"},
+      {"title": "Promoção: trocar tráfego para Green", "cmd": "# Troca INSTANTÂNEA — zero downtime!\nkubectl patch service web-svc -p '{\"spec\":{\"selector\":{\"version\":\"green\"}}}'"},
+      {"title": "Rollback: voltar para Blue em emergência", "cmd": "kubectl patch service web-svc -p '{\"spec\":{\"selector\":{\"version\":\"blue\"}}}'\n# Opcional: remover Green após validar Blue\nkubectl delete deployment web-green"},
+      {"title": "Verificar qual versão está recebendo tráfego", "cmd": "kubectl get svc web-svc -o jsonpath='{.spec.selector}' | python3 -m json.tool\nkubectl get endpoints web-svc"}
+    ]
+  },
+  {
+    "id": "proj-4",
+    "name": "Stack ELK com Persistent Storage",
+    "level": "Advanced",
+    "category": "Observability",
+    "duration": 75,
+    "icon": "bar-chart-2",
+    "tech": ["Elasticsearch", "Logstash", "Kibana", "Helm", "StatefulSet", "PVC"],
+    "description": "Stack ELK completo no Kubernetes: Elasticsearch como StatefulSet com volumes persistentes, Logstash e Kibana via Helm.",
+    "explanation": "O stack ELK (Elasticsearch, Logstash, Kibana) é o padrão de mercado para observabilidade de logs em escala. O Elasticsearch precisa ser um StatefulSet porque cada instância tem uma identidade única (es-master-0, es-master-1) e dados persistentes que não podem ser perdidos. O PersistentVolumeClaim garante que os dados do Elasticsearch sobrevivam a restarts do pod. O Logstash atua como pipeline de coleta, transformação e envio de logs. O Kibana fornece dashboards interativos. Com o Fluentd rodando como DaemonSet em cada node, você ingere automaticamente todos os logs dos containers do cluster no Elasticsearch, criando assim um observability stack completo.",
+    "objectives": [
+      "Elasticsearch como StatefulSet com PVC de 10Gi",
+      "Instalar Kibana com Helm e Port-forward para acesso",
+      "Verificar saúde do cluster Elasticsearch via API",
+      "Visualizar índices e criar um dashboard básico"
+    ],
+    "steps": [
+      {"title": "Criar namespace de monitoramento", "cmd": "kubectl create namespace monitoring\nkubectl config set-context --current --namespace=monitoring"},
+      {"title": "Adicionar repo Helm da Elastic", "cmd": "helm repo add elastic https://helm.elastic.co\nhelm repo update"},
+      {"title": "Deploy Elasticsearch com PVC", "cmd": "helm install elasticsearch elastic/elasticsearch \\\n  --set replicas=1 \\\n  --set minimumMasterNodes=1 \\\n  --set volumeClaimTemplate.resources.requests.storage=10Gi \\\n  --set resources.requests.cpu=500m \\\n  --set resources.requests.memory=1Gi\n\n# Aguardar elasticsearch-master-0 ficar Running\nkubectl get pods -w"},
+      {"title": "Deploy Kibana e acessar a UI", "cmd": "helm install kibana elastic/kibana\n\n# Aguardar Kibana ficar ativo:\nkubectl get pods -l app=kibana -w\n\n# Abrir a UI no browser:\nkubectl port-forward svc/kibana-kibana 5601:5601\n# Acesse: http://localhost:5601"},
+      {"title": "Verificar saúde do cluster Elasticsearch", "cmd": "kubectl exec -it elasticsearch-master-0 -- \\\n  curl -s http://localhost:9200/_cluster/health?pretty\n\n# Ver índices\nkubectl exec -it elasticsearch-master-0 -- \\\n  curl -s http://localhost:9200/_cat/indices?v"}
+    ]
+  },
+  {
+    "id": "proj-5",
+    "name": "CI/CD GitOps com ArgoCD",
+    "level": "Advanced",
+    "category": "GitOps",
+    "duration": 90,
+    "icon": "git-merge",
+    "tech": ["ArgoCD", "GitOps", "Helm", "Git", "Kubernetes"],
+    "description": "Pipeline GitOps completo: ArgoCD detecta changes no Git e sincroniza automaticamente para o cluster.",
+    "explanation": "O GitOps é o padrão moderno de CD para Kubernetes: o Git é a única fonte da verdade. Em vez de scripts de deploy que empurram mudanças para o cluster, o ArgoCD fica DENTRO do cluster observando um repositório Git. Quando você faz push de um novo manifesto YAML ou atualiza um Chart Helm, o ArgoCD detecta a diferença entre o estado desejado (Git) e o estado atual (cluster) e reconcilia automaticamente. Isso traz rastreabilidade total (cada deploy é um commit), rollback via git revert e auto-heal (se alguém mudar algo no cluster manualmente, ArgoCD reverte). É o modelo GitOps adotado por empresas como Spotify, Shopify e GitHub.",
+    "objectives": [
+      "Instalar ArgoCD no cluster e acessar a UI",
+      "Criar um Application apontando para repositório Git",
+      "Fazer push de mudança e observar sync automático",
+      "Configurar auto-sync, auto-prune e self-heal"
+    ],
+    "steps": [
+      {"title": "Instalar ArgoCD no cluster", "cmd": "kubectl create namespace argocd\nkubectl apply -n argocd \\\n  -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml\n\n# Aguardar os pods subirem:\nkubectl get pods -n argocd -w"},
+      {"title": "Acessar a UI e obter senha inicial", "cmd": "# Port-forward para acessar a UI localmente:\nkubectl port-forward svc/argocd-server -n argocd 8080:443\n\n# Senha do admin (em outro terminal):\nkubectl -n argocd get secret argocd-initial-admin-secret \\\n  -o jsonpath=\"{.data.password}\" | base64 -d && echo\n\n# Acesse: https://localhost:8080 (usuário: admin)"},
+      {"title": "Criar Application GitOps com auto-sync", "cmd": "argocd login localhost:8080 --username admin --insecure\n\nargocd app create minha-app \\\n  --repo https://github.com/seu-usuario/k8s-manifests \\\n  --path ./k8s \\\n  --dest-server https://kubernetes.default.svc \\\n  --dest-namespace default \\\n  --sync-policy automated \\\n  --auto-prune \\\n  --self-heal"},
+      {"title": "Monitorar sincronizações", "cmd": "argocd app list\nargocd app get minha-app\nargocd app history minha-app\n# Ou via kubectl:\nkubectl get applications -n argocd"}
+    ]
+  },
+  {
+    "id": "proj-6",
+    "name": "Canary Release com Traffic Splitting",
+    "level": "Advanced",
+    "category": "Progressive Delivery",
+    "duration": 60,
+    "icon": "sliders",
+    "tech": ["Kubernetes", "Nginx Ingress", "Canary Annotations", "Monitoring"],
+    "description": "Envie 10% do tráfego para a nova versão e aumente gradualmente após validar métricas de erro e latência.",
+    "explanation": "O Canary Release é mais sofisticado que o Blue/Green porque distribui tráfego gradualmente, não de uma vez. O nome vem dos 'canários nas minas de carvão' — você expõe a nova versão a uma pequena fatia de usuários reais (10%) e monitora métricas como taxa de erro, latência e conversão. Se tudo estiver saudável, aumenta para 25%, 50%, 75%, 100%. Se der problema, só 10% dos usuários foram afetados e você reverte instantaneamente. Com o Nginx Ingress Controller, isso é feito via annotations canary-weight sem necessidade de ferramentas adicionais. Para canary mais avançado com análise de métricas automática, usa-se Argo Rollouts ou Flagger.",
+    "objectives": [
+      "Deploy de versão Stable (v1) recebendo 90% do tráfego",
+      "Deploy de versão Canary (v2) com 10% via Ingress annotation",
+      "Monitorar métricas via kubectl e Prometheus",
+      "Promoção gradual: 10% → 50% → 100%"
+    ],
+    "steps": [
+      {"title": "Deploy Stable (v1 — 90% do tráfego)", "cmd": "kubectl apply -f stable-deployment.yaml\nkubectl apply -f - <<EOF\napiVersion: networking.k8s.io/v1\nkind: Ingress\nmetadata:\n  name: my-app-stable\nspec:\n  rules:\n  - host: meuapp.local\n    http:\n      paths:\n      - path: /\n        pathType: Prefix\n        backend:\n          service:\n            name: stable-service\n            port:\n              number: 80\nEOF"},
+      {"title": "Deploy Canary (v2 — apenas 10%)", "cmd": "kubectl apply -f - <<EOF\napiVersion: networking.k8s.io/v1\nkind: Ingress\nmetadata:\n  name: my-app-canary\n  annotations:\n    nginx.ingress.kubernetes.io/canary: \"true\"\n    nginx.ingress.kubernetes.io/canary-weight: \"10\"\nspec:\n  rules:\n  - host: meuapp.local\n    http:\n      paths:\n      - path: /\n        pathType: Prefix\n        backend:\n          service:\n            name: canary-service\n            port:\n              number: 80\nEOF"},
+      {"title": "Aumentar gradualmente para 50% → 100%", "cmd": "# Monitorar métricas antes de aumentar\nkubectl top pods -l version=canary\n\n# Aumentar para 50%\nkubectl annotate ingress my-app-canary \\\n  nginx.ingress.kubernetes.io/canary-weight=50 --overwrite\n\n# Promover para 100% (desativa o stable)\nkubectl annotate ingress my-app-canary \\\n  nginx.ingress.kubernetes.io/canary-weight=100 --overwrite\nkubectl delete ingress my-app-stable"}
+    ]
+  },
+  {
+    "id": "proj-7",
+    "name": "PostgreSQL + Backup Automático para S3",
+    "level": "Intermediate",
+    "category": "Database",
+    "duration": 50,
+    "icon": "database",
+    "tech": ["PostgreSQL", "StatefulSet", "CronJob", "AWS S3", "Secret"],
+    "description": "PostgreSQL como StatefulSet com PVC de 20Gi, Secret para credenciais e CronJob de backup diário para S3.",
+    "explanation": "Bancos de dados no Kubernetes exigem cuidado especial porque têm estado. Um StatefulSet garante que o pod postgres-0 sempre use o mesmo PVC (e portanto os mesmos dados). O PersistentVolumeClaim cria um volume de 20Gi que sobrevive a restarts e upgrades. As credenciais ficam em Secrets do Kubernetes, nunca expostas no código. O backup é automatizado via CronJob do Kubernetes — ele roda pg_dump todos os dias às 2h da manhã, comprime com gzip e envia para S3. Em caso de disaster recovery, você tem um restore documentado e testado. Este padrão é exatamente como times de SRE gerenciam bancos em produção na cloud.",
+    "objectives": [
+      "PostgreSQL em StatefulSet com PVC de 20Gi provisionado dinamicamente",
+      "Credentials via Kubernetes Secret (nunca em plaintext no YAML)",
+      "CronJob de backup diário com pg_dump → gzip → S3",
+      "Script de restore documentado e testável"
+    ],
+    "steps": [
+      {"title": "Criar Secrets de credenciais", "cmd": "kubectl create secret generic pg-secret \\\n  --from-literal=POSTGRES_PASSWORD=minhaSenha123 \\\n  --from-literal=AWS_ACCESS_KEY_ID=AKIAIOSFODNN7 \\\n  --from-literal=AWS_SECRET_ACCESS_KEY=seu-secret-key\n\nkubectl get secret pg-secret -o jsonpath='{.data}' | python3 -m json.tool"},
+      {"title": "StatefulSet PostgreSQL com PVC", "cmd": "kubectl apply -f - <<EOF\napiVersion: apps/v1\nkind: StatefulSet\nmetadata:\n  name: postgres\nspec:\n  serviceName: postgres\n  replicas: 1\n  selector:\n    matchLabels:\n      app: postgres\n  template:\n    metadata:\n      labels:\n        app: postgres\n    spec:\n      containers:\n      - name: postgres\n        image: postgres:16\n        envFrom:\n        - secretRef:\n            name: pg-secret\n        volumeMounts:\n        - name: pgdata\n          mountPath: /var/lib/postgresql/data\n  volumeClaimTemplates:\n  - metadata:\n      name: pgdata\n    spec:\n      accessModes: [ReadWriteOnce]\n      resources:\n        requests:\n          storage: 20Gi\nEOF\nkubectl get pods -w"},
+      {"title": "CronJob de backup diário para S3", "cmd": "kubectl apply -f - <<EOF\napiVersion: batch/v1\nkind: CronJob\nmetadata:\n  name: pg-backup\nspec:\n  schedule: \"0 2 * * *\"\n  jobTemplate:\n    spec:\n      template:\n        spec:\n          containers:\n          - name: backup\n            image: postgres:16\n            envFrom:\n            - secretRef:\n                name: pg-secret\n            command:\n            - /bin/sh\n            - -c\n            - |\n              pg_dump -h postgres postgres | gzip | \\\n              aws s3 cp - s3://meu-bucket/backups/$(date +%Y%m%d-%H%M).sql.gz\n          restartPolicy: OnFailure\nEOF"},
+      {"title": "Restaurar backup em emergência", "cmd": "# Listar backups disponíveis\naws s3 ls s3://meu-bucket/backups/\n\n# Restaurar o backup mais recente\naws s3 cp s3://meu-bucket/backups/20240101-0200.sql.gz - | \\\n  gunzip | kubectl exec -i postgres-0 -- \\\n  psql -U postgres -d postgres"}
+    ]
+  },
+  {
+    "id": "proj-8",
+    "name": "Autoscaling Completo com Load Test (k6)",
+    "level": "Intermediate",
+    "category": "Performance",
+    "duration": 40,
+    "icon": "trending-up",
+    "tech": ["HPA", "k6", "metrics-server", "Grafana", "Prometheus"],
+    "description": "Configure HPA e valide o autoscaling sob carga real gerada pelo k6, observando pods escalarem em tempo real.",
+    "explanation": "O HPA (Horizontal Pod Autoscaler) é um dos recursos mais poderosos do Kubernetes, mas é difícil de testar sem gerar carga real. O k6 é uma ferramenta de load testing moderna (escrita em Go, scriptável em JS) que permite simular centenas de usuários concorrentes. Neste projeto você verá na prática o loop de autoscaling: k6 gera carga → CPU dos pods aumenta → metrics-server reporta ao HPA → HPA cria novos pods automaticamente → carga se distribui → CPU volta ao normal → HPA reduz pods após o cooldown. Este ciclo é fundamental para garantir que sua aplicação responda a picos de tráfego sem intervenção humana.",
+    "objectives": [
+      "Deploy com resource limits e HPA (min 2, max 15 réplicas)",
+      "Instalar metrics-server para expor métricas de CPU/memória",
+      "Gerar carga progressiva com k6 (ramp-up de 0 a 200 VUs)",
+      "Observar o ciclo completo de scale-up e scale-down"
+    ],
+    "steps": [
+      {"title": "Deploy com resources definidos + HPA", "cmd": "kubectl apply -f - <<EOF\napiVersion: autoscaling/v2\nkind: HorizontalPodAutoscaler\nmetadata:\n  name: api-hpa\nspec:\n  scaleTargetRef:\n    apiVersion: apps/v1\n    kind: Deployment\n    name: api-deployment\n  minReplicas: 2\n  maxReplicas: 15\n  metrics:\n  - type: Resource\n    resource:\n      name: cpu\n      target:\n        type: Utilization\n        averageUtilization: 60\n  behavior:\n    scaleDown:\n      stabilizationWindowSeconds: 300\nEOF\nkubectl get hpa --watch"},
+      {"title": "Instalar metrics-server (pré-requisito do HPA)", "cmd": "kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml\n\n# Aguardar metrics-server estar pronto:\nkubectl get deployment metrics-server -n kube-system\n\n# Verificar que métricas estão chagendo:\nkubectl top pods --sort-by=cpu"},
+      {"title": "Script k6 de carga progressiva (ramp-up)", "cmd": "# Instalar k6: https://grafana.com/docs/k6/latest/get-started/installation/\n\ncat > load_test.js << 'JS'\nimport http from 'k6/http';\nimport { sleep, check } from 'k6';\n\nexport const options = {\n  stages: [\n    { duration: '1m', target: 50 },\n    { duration: '2m', target: 200 },\n    { duration: '1m', target: 0 },\n  ],\n};\n\nexport default function() {\n  const res = http.get('http://meuapp.local/api/heavy');\n  check(res, { 'status 200': (r) => r.status === 200 });\n  sleep(0.1);\n}\nJS\n\nk6 run load_test.js"},
+      {"title": "Monitorar autoscaling em tempo real", "cmd": "# Em um terminal separado — watch automático a cada 3s\nwatch -n3 'echo \"=== PODS ===\"; kubectl get pods -l app=api; echo; echo \"=== HPA ===\"; kubectl get hpa api-hpa'"}
+    ]
+  }
+]

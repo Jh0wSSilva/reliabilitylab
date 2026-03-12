@@ -1,0 +1,238 @@
+[
+  {
+    "id": "docker-1",
+    "title": "Instalação do Docker no Linux (Ubuntu/Debian/Fedora)",
+    "slug": "instalacao-docker-linux",
+    "category": "Instalação",
+    "level": 1,
+    "duration": 10,
+    "tags": [
+      "Linux",
+      "Ubuntu",
+      "Debian",
+      "Fedora",
+      "Instalação"
+    ],
+    "excerpt": "Guia passo a passo para instalar o Docker Engine no Ubuntu, Debian e Fedora usando o repositório oficial.",
+    "content": "<h2>Ubuntu / Debian</h2><p>A instalação recomendada usa o repositório oficial do Docker, que sempre tem a versão mais recente e atualizada.</p><div class='code-wrapper'><div class='code-header'><span>1. Remover versões antigas</span><button class='copy-btn'><i data-lucide='copy' size='14'></i> Copy</button></div><pre><code class='language-bash'>sudo apt-get remove docker docker-engine docker.io containerd runc 2>/dev/null</code></pre></div><div class='code-wrapper'><div class='code-header'><span>2. Instalar dependências e adicionar repositório</span><button class='copy-btn'><i data-lucide='copy' size='14'></i> Copy</button></div><pre><code class='language-bash'># Atualizar pacotes e instalar dependências\nsudo apt-get update\nsudo apt-get install -y ca-certificates curl gnupg\n\n# Adicionar chave GPG oficial do Docker\nsudo install -m 0755 -d /etc/apt/keyrings\ncurl -fsSL https://download.docker.com/linux/ubuntu/gpg | \\\n  sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg\nsudo chmod a+r /etc/apt/keyrings/docker.gpg\n\n# Adicionar repositório\necho \"deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \\\n  https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo $VERSION_CODENAME) stable\" | \\\n  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null</code></pre></div><div class='code-wrapper'><div class='code-header'><span>3. Instalar Docker Engine</span><button class='copy-btn'><i data-lucide='copy' size='14'></i> Copy</button></div><pre><code class='language-bash'>sudo apt-get update\nsudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin\n\n# Rodar sem sudo (adicionar seu usuário ao grupo docker)\nsudo usermod -aG docker $USER\nnewgrp docker\n\n# Verificar instalação\ndocker --version\ndocker run hello-world</code></pre></div><h2>Fedora / RHEL</h2><div class='code-wrapper'><div class='code-header'><span>Fedora</span><button class='copy-btn'><i data-lucide='copy' size='14'></i> Copy</button></div><pre><code class='language-bash'>sudo dnf -y install dnf-plugins-core\nsudo dnf config-manager --add-repo https://download.docker.com/linux/fedora/docker-ce.repo\nsudo dnf install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin\nsudo systemctl start docker\nsudo systemctl enable docker\nsudo usermod -aG docker $USER</code></pre></div><h2>Pós-instalação</h2><ul><li><strong>Docker Compose</strong> já vem incluso como plugin (<code>docker compose</code> sem hífen).</li><li><strong>Sem sudo</strong>: após <code>usermod -aG docker $USER</code>, faça logout e login novamente.</li><li><strong>Iniciar com o sistema</strong>: <code>sudo systemctl enable docker</code></li></ul>"
+  },
+  {
+    "id": "docker-2",
+    "title": "Instalação do Docker no macOS (Intel e Apple Silicon)",
+    "slug": "instalacao-docker-mac",
+    "category": "Instalação",
+    "level": 1,
+    "duration": 8,
+    "tags": [
+      "macOS",
+      "Apple Silicon",
+      "M1",
+      "M2",
+      "Instalação"
+    ],
+    "excerpt": "Instale o Docker Desktop no macOS com suporte nativo a chips Apple Silicon (M1/M2/M3) e Intel.",
+    "content": "<h2>Docker Desktop para macOS</h2><p>No macOS, o Docker roda dentro de uma VM Linux leve gerenciada pelo Docker Desktop. Desde 2022, há suporte nativo para Apple Silicon (M1/M2/M3).</p><h2>Método 1: Download direto</h2><div class='code-wrapper'><div class='code-header'><span>Baixar o instalador</span><button class='copy-btn'><i data-lucide='copy' size='14'></i> Copy</button></div><pre><code class='language-bash'># Apple Silicon (M1/M2/M3)\ncurl -o Docker.dmg 'https://desktop.docker.com/mac/main/arm64/Docker.dmg'\n\n# Intel\ncurl -o Docker.dmg 'https://desktop.docker.com/mac/main/amd64/Docker.dmg'\n\n# Instalar\nopen Docker.dmg\n# Arraste Docker.app para Applications</code></pre></div><h2>Método 2: Homebrew (recomendado)</h2><div class='code-wrapper'><div class='code-header'><span>Instalar via Homebrew</span><button class='copy-btn'><i data-lucide='copy' size='14'></i> Copy</button></div><pre><code class='language-bash'># Instalar Homebrew (se ainda não tiver)\n/bin/bash -c \"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\"\n\n# Instalar Docker Desktop\nbrew install --cask docker\n\n# Abrir o Docker Desktop\nopen /Applications/Docker.app\n\n# Verificar\ndocker --version\ndocker compose version</code></pre></div><h2>Configurações Recomendadas</h2><ul><li><strong>Recursos</strong>: Docker Desktop → Settings → Resources → Ajuste CPUs (metade dos seus cores) e RAM (4GB mínimo)</li><li><strong>File Sharing</strong>: Adicione as pastas do seu projeto em Settings → Resources → File Sharing para bind mounts funcionarem</li><li><strong>Kubernetes</strong>: Ative em Settings → Kubernetes → Enable Kubernetes para ter um cluster local embutido</li></ul>"
+  },
+  {
+    "id": "docker-3",
+    "title": "Instalação do Docker no Windows (WSL 2 + Docker Desktop)",
+    "slug": "instalacao-docker-windows",
+    "category": "Instalação",
+    "level": 1,
+    "duration": 15,
+    "tags": [
+      "Windows",
+      "WSL2",
+      "Docker Desktop",
+      "Instalação"
+    ],
+    "excerpt": "Configure o WSL 2 e instale o Docker Desktop no Windows 10/11 para rodar containers Linux nativamente.",
+    "content": "<h2>Pré-requisito: WSL 2</h2><p>O Docker no Windows usa o <strong>WSL 2</strong> (Windows Subsystem for Linux) como backend. Ele roda um kernel Linux real dentro do Windows, oferecendo performance nativa para containers.</p><div class='code-wrapper'><div class='code-header'><span>1. Instalar WSL 2</span><button class='copy-btn'><i data-lucide='copy' size='14'></i> Copy</button></div><pre><code class='language-powershell'># Abra o PowerShell como Administrador\nwsl --install\n\n# Se já tem WSL 1, fazer upgrade:\nwsl --set-default-version 2\n\n# Instalar Ubuntu (distro recomendada)\nwsl --install -d Ubuntu\n\n# Reinicie o computador após a instalação</code></pre></div><h2>Instalar Docker Desktop</h2><div class='code-wrapper'><div class='code-header'><span>2. Baixar e instalar</span><button class='copy-btn'><i data-lucide='copy' size='14'></i> Copy</button></div><pre><code class='language-powershell'># Via winget (Windows Package Manager)\nwinget install Docker.DockerDesktop\n\n# Ou baixe manualmente de:\n# https://desktop.docker.com/win/main/amd64/Docker%20Desktop%20Installer.exe</code></pre></div><div class='code-wrapper'><div class='code-header'><span>3. Configurar integração WSL 2</span><button class='copy-btn'><i data-lucide='copy' size='14'></i> Copy</button></div><pre><code class='language-text'>Docker Desktop → Settings → General:\n  ✅ Use the WSL 2 based engine\n\nDocker Desktop → Settings → Resources → WSL Integration:\n  ✅ Enable integration with my default WSL distro\n  ✅ Ubuntu (marque a distro que você usa)</code></pre></div><h2>Verificar instalação</h2><div class='code-wrapper'><div class='code-header'><span>4. Testar no terminal WSL</span><button class='copy-btn'><i data-lucide='copy' size='14'></i> Copy</button></div><pre><code class='language-bash'># Abra o terminal Ubuntu (WSL)\ndocker --version\ndocker compose version\ndocker run hello-world</code></pre></div><h2>Dicas Importantes</h2><ul><li><strong>Use WSL 2, não WSL 1</strong>: A performance de I/O é 10x melhor com WSL 2.</li><li><strong>Projetos dentro do WSL</strong>: Mantenha seu código em <code>~/projetos</code> dentro do WSL (não em <code>/mnt/c/</code>) para máxima velocidade de bind mounts.</li><li><strong>VS Code + WSL</strong>: Instale a extensão 'Remote - WSL' no VS Code para editar código dentro do WSL transparentemente.</li><li><strong>Comando correto</strong>: No WSL 2, use <code>docker compose</code> (sem hífen), não <code>docker-compose</code>.</li></ul>"
+  },
+  {
+    "id": "docker-4",
+    "title": "Introdução ao Docker — O que é e Por Que Usar?",
+    "slug": "introducao-docker",
+    "category": "Docker Fundamentos",
+    "level": 1,
+    "duration": 8,
+    "tags": [
+      "Introdução",
+      "Conceitos",
+      "OCI"
+    ],
+    "excerpt": "Entenda os conceitos de containers, imagens e por que o Docker revolucionou o deploy de software.",
+    "content": "<p>O <strong>Docker</strong> é uma plataforma que permite empacotar aplicações e todas as suas dependências em um <em>container</em>.</p><h2>Conceitos Fundamentais</h2><ul><li><strong>Imagem</strong>: Um snapshot imutável do filesystem. Como uma receita de bolo.</li><li><strong>Container</strong>: A instância em execução de uma imagem.</li><li><strong>Registry</strong>: Armazém de imagens. O Docker Hub é o mais popular.</li><li><strong>Dockerfile</strong>: O arquivo com as instruções para construir sua imagem.</li></ul><h2>Container vs Máquina Virtual</h2><p>VMs virtualizam hardware completo. Containers compartilham o kernel do host e virtualizam apenas o espaço de usuário. Resultado: containers são iniciados em milissegundos e consomem muito menos recursos.</p><div class='code-wrapper'><div class='code-header'><span>Verificando a instalação</span><button class='copy-btn'><i data-lucide='copy' size='14'></i> Copy</button></div><pre><code class='language-bash'>docker --version\ndocker run hello-world</code></pre></div>"
+  },
+  {
+    "id": "docker-5",
+    "title": "Primeiros Passos — Rodando e Gerenciando Containers",
+    "slug": "primeiros-passos-containers",
+    "category": "Docker Fundamentos",
+    "level": 1,
+    "duration": 12,
+    "tags": [
+      "CLI",
+      "Comandos",
+      "Gerenciamento"
+    ],
+    "excerpt": "Aprenda os comandos essenciais: docker run, ps, stop, rm, exec e logs para gerenciar containers.",
+    "content": "<h2>Rodando um Container</h2><div class='code-wrapper'><div class='code-header'><span>Comandos básicos</span><button class='copy-btn'><i data-lucide='copy' size='14'></i> Copy</button></div><pre><code class='language-bash'># Roda um nginx e mapeia porta 8080 para 80 do container\ndocker run -d -p 8080:80 --name meu-nginx nginx\n\n# Lista containers em execução\ndocker ps\n\n# Ver os logs em tempo real\ndocker logs -f meu-nginx\n\n# Entrar no shell do container\ndocker exec -it meu-nginx /bin/sh\n\n# Parar e remover\ndocker stop meu-nginx\ndocker rm meu-nginx</code></pre></div><h2>Flags Mais Usadas</h2><ul><li><code>-d</code>: Detached mode (background)</li><li><code>-p host:container</code>: Mapeia portas</li><li><code>-v host_path:container_path</code>: Monta volume</li><li><code>-e CHAVE=VALOR</code>: Variável de ambiente</li><li><code>--rm</code>: Remove o container ao finalizar</li><li><code>--name</code>: Dá um nome legível ao container</li></ul>"
+  },
+  {
+    "id": "docker-6",
+    "title": "Construindo Imagens com Dockerfile",
+    "slug": "criando-dockerfile",
+    "category": "Docker Fundamentos",
+    "level": 2,
+    "duration": 15,
+    "tags": [
+      "Dockerfile",
+      "Build",
+      "Layers"
+    ],
+    "excerpt": "Aprenda a escrever Dockerfiles eficientes e entender as camadas de cache.",
+    "content": "<h2>Estrutura Básica</h2><div class='code-wrapper'><div class='code-header'><span>Dockerfile — Aplicação Python Flask</span><button class='copy-btn'><i data-lucide='copy' size='14'></i> Copy</button></div><pre><code class='language-dockerfile'>FROM python:3.12-slim\n\nLABEL maintainer=\"seu@email.com\"\n\nWORKDIR /app\n\n# Copie dependências ANTES do código (cache inteligente!)\nCOPY requirements.txt .\nRUN pip install --no-cache-dir -r requirements.txt\n\nCOPY . .\n\nEXPOSE 5000\n\nCMD [\"python\", \"-m\", \"flask\", \"run\", \"--host=0.0.0.0\"]</code></pre></div><h2>A Magia do Cache em Camadas</h2><p>Cada instrução cria uma nova <em>camada</em> na imagem. O Docker reutiliza camadas cacheadas automaticamente. Coloque instruções que mudam pouco (instalar dependências) antes das que mudam frequentemente (copiar código).</p><div class='code-wrapper'><div class='code-header'><span>Build e Push</span><button class='copy-btn'><i data-lucide='copy' size='14'></i> Copy</button></div><pre><code class='language-bash'># Construir com tag\ndocker build -t minha-app:v1.0 .\n\n# Publicar no Docker Hub\ndocker tag minha-app:v1.0 usuario/minha-app:v1.0\ndocker push usuario/minha-app:v1.0</code></pre></div>"
+  },
+  {
+    "id": "docker-7",
+    "title": "Multi-stage Builds — Imagens Slim e Seguras",
+    "slug": "multi-stage-builds",
+    "category": "Docker Avançado",
+    "level": 4,
+    "duration": 14,
+    "tags": [
+      "Multi-stage",
+      "Otimização",
+      "Segurança"
+    ],
+    "excerpt": "Separe build tools do runtime final para imagens menores e sem ferramentas desnecessárias.",
+    "content": "<h2>O Problema</h2><p>Compilar Go, Java ou TypeScript exige ferramentas de build que não devem estar na imagem final — elas aumentam tamanho e superfície de ataque.</p><h2>A Solução: Multi-stage</h2><div class='code-wrapper'><div class='code-header'><span>Dockerfile — Go App</span><button class='copy-btn'><i data-lucide='copy' size='14'></i> Copy</button></div><pre><code class='language-dockerfile'># Stage 1: Build\nFROM golang:1.22-alpine AS builder\nWORKDIR /app\nCOPY go.mod go.sum ./\nRUN go mod download\nCOPY . .\nRUN CGO_ENABLED=0 GOOS=linux go build -o server .\n\n# Stage 2: Runner (sem Go instalado!)\nFROM scratch\nCOPY --from=builder /app/server /server\nEXPOSE 8080\nCMD [\"/server\"]</code></pre></div><div class='code-wrapper'><div class='code-header'><span>React Multi-stage</span><button class='copy-btn'><i data-lucide='copy' size='14'></i> Copy</button></div><pre><code class='language-dockerfile'>FROM node:20-alpine AS build\nWORKDIR /app\nCOPY package*.json ./\nRUN npm ci\nCOPY . .\nRUN npm run build\n\nFROM nginx:alpine\nCOPY --from=build /app/dist /usr/share/nginx/html</code></pre></div>"
+  },
+  {
+    "id": "docker-8",
+    "title": "Docker Volumes — Persistência de Dados",
+    "slug": "docker-volumes",
+    "category": "Docker Fundamentos",
+    "level": 2,
+    "duration": 10,
+    "tags": [
+      "Volumes",
+      "Persistência",
+      "Bind Mount"
+    ],
+    "excerpt": "Diferença entre volumes gerenciados e bind mounts para persistir dados de bancos e uploads.",
+    "content": "<h2>Tipos de Persistência</h2><ul><li><strong>Named Volumes</strong>: Gerenciados pelo Docker em /var/lib/docker/volumes. Ideal para bancos de dados.</li><li><strong>Bind Mounts</strong>: Monta uma pasta do host diretamente. Ideal para desenvolvimento hot-reload.</li><li><strong>tmpfs Mounts</strong>: Armazenado em memória RAM. Ideal para segredos temporários.</li></ul><div class='code-wrapper'><div class='code-header'><span>Exemplos práticos</span><button class='copy-btn'><i data-lucide='copy' size='14'></i> Copy</button></div><pre><code class='language-bash'># Named Volume (recomendado para produção)\ndocker volume create dados-postgres\ndocker run -d \\\n  -e POSTGRES_PASSWORD=senha123 \\\n  -v dados-postgres:/var/lib/postgresql/data \\\n  postgres:16\n\n# Bind Mount (para desenvolvimento com hot-reload)\ndocker run -d \\\n  -p 8080:80 \\\n  -v $(pwd)/src:/app/src \\\n  minha-app:dev\n\n# Listar e limpar volumes não utilizados\ndocker volume ls\ndocker volume prune</code></pre></div>"
+  },
+  {
+    "id": "docker-9",
+    "title": "Docker Networking em Profundidade",
+    "slug": "docker-networking",
+    "category": "Docker Avançado",
+    "level": 3,
+    "duration": 16,
+    "tags": [
+      "Networking",
+      "Bridge",
+      "Overlay",
+      "DNS"
+    ],
+    "excerpt": "Redes bridge, host, overlay e macvlan: como containers se comunicam internamente por DNS.",
+    "content": "<h2>Drivers de Rede</h2><ul><li><strong>bridge</strong>: Rede privada virtual para containers no mesmo host. DNS embutido por nome de container.</li><li><strong>host</strong>: Container compartilha interface do host. Máxima performance, sem NAT.</li><li><strong>overlay</strong>: Rede multi-host para Docker Swarm.</li><li><strong>macvlan</strong>: Container recebe MAC address próprio. Para apps legadas.</li></ul><div class='code-wrapper'><div class='code-header'><span>Criando redes customizadas</span><button class='copy-btn'><i data-lucide='copy' size='14'></i> Copy</button></div><pre><code class='language-bash'>docker network create --driver bridge minha-rede\n\n# Rodar postgres na rede\ndocker run -d --network minha-rede --name db postgres:16\n\n# API pode acessar 'db' por hostname!\ndocker run -d --network minha-rede --name api \\\n  -e DATABASE_HOST=db \\\n  minha-api:latest\n\ndocker network inspect minha-rede</code></pre></div>"
+  },
+  {
+    "id": "docker-10",
+    "title": "Docker Compose — Orquestrando Múltiplos Containers",
+    "slug": "docker-compose-guide",
+    "category": "Docker Compose",
+    "level": 2,
+    "duration": 18,
+    "tags": [
+      "Compose",
+      "YAML",
+      "Multi-container"
+    ],
+    "excerpt": "Defina stacks completas de aplicação em um único YAML e suba tudo com um único comando.",
+    "content": "<h2>Stack Completa com Healthchecks</h2><div class='code-wrapper'><div class='code-header'><span>docker-compose.yml</span><button class='copy-btn'><i data-lucide='copy' size='14'></i> Copy</button></div><pre><code class='language-yaml'>services:\n  db:\n    image: postgres:16\n    environment:\n      POSTGRES_DB: app_db\n      POSTGRES_USER: admin\n      POSTGRES_PASSWORD: senha_secreta\n    volumes:\n      - pg_data:/var/lib/postgresql/data\n    healthcheck:\n      test: [\"CMD-SHELL\", \"pg_isready -U admin\"]\n      interval: 10s\n      retries: 5\n\n  redis:\n    image: redis:7-alpine\n\n  api:\n    build: .\n    ports:\n      - \"8000:8000\"\n    environment:\n      DATABASE_URL: postgresql://admin:senha_secreta@db/app_db\n    depends_on:\n      db:\n        condition: service_healthy\n\nvolumes:\n  pg_data:</code></pre></div><div class='code-wrapper'><div class='code-header'><span>Comandos Essenciais</span><button class='copy-btn'><i data-lucide='copy' size='14'></i> Copy</button></div><pre><code class='language-bash'>docker compose up -d\ndocker compose up --build -d\ndocker compose logs -f api\ndocker compose exec api python manage.py migrate\ndocker compose down -v</code></pre></div>"
+  },
+  {
+    "id": "docker-11",
+    "title": "Segurança no Docker — Usuário Não-Root e Scout",
+    "slug": "seguranca-docker",
+    "category": "Docker Avançado",
+    "level": 4,
+    "duration": 14,
+    "tags": [
+      "Segurança",
+      "Non-root",
+      "Scout",
+      "Secrets"
+    ],
+    "excerpt": "Execute containers com usuário não privilegiado, scaneie vulnerabilidades e gerencie segredos.",
+    "content": "<h2>Usuário Não-Root</h2><div class='code-wrapper'><div class='code-header'><span>Dockerfile com usuário seguro</span><button class='copy-btn'><i data-lucide='copy' size='14'></i> Copy</button></div><pre><code class='language-dockerfile'>FROM python:3.12-slim\n\nWORKDIR /app\n\nRUN groupadd -r appgroup && useradd -r -g appgroup appuser\n\nCOPY --chown=appuser:appgroup requirements.txt .\nRUN pip install --no-cache-dir -r requirements.txt\n\nCOPY --chown=appuser:appgroup . .\n\nUSER appuser\n\nCMD [\"uvicorn\", \"main:app\", \"--host\", \"0.0.0.0\"]</code></pre></div><h2>Scan com Docker Scout</h2><div class='code-wrapper'><div class='code-header'><span>Verificando CVEs</span><button class='copy-btn'><i data-lucide='copy' size='14'></i> Copy</button></div><pre><code class='language-bash'>docker scout cves minha-app:latest\ndocker scout recommendations minha-app:latest</code></pre></div><h2>Regras de Ouro</h2><ul><li>Nunca use <code>ENV SENHA=xxx</code> no Dockerfile — visível em docker inspect.</li><li>Use Docker Secrets (Swarm) ou K8s Secrets para credenciais.</li><li>Prefira imagens Alpine ou Distroless para menor superfície de ataque.</li></ul>"
+  },
+  {
+    "id": "docker-12",
+    "title": "Healthchecks — Monitorando a Saúde dos Containers",
+    "slug": "docker-healthchecks",
+    "category": "Docker Avançado",
+    "level": 3,
+    "duration": 10,
+    "tags": [
+      "Healthcheck",
+      "Monitoring",
+      "Compose"
+    ],
+    "excerpt": "Configure HEALTHCHECK no Dockerfile e no Compose para que orquestradores saibam quando um container está realmente saudável.",
+    "content": "<h2>HEALTHCHECK no Dockerfile</h2><div class='code-wrapper'><div class='code-header'><span>Dockerfile com Healthcheck</span><button class='copy-btn'><i data-lucide='copy' size='14'></i> Copy</button></div><pre><code class='language-dockerfile'>FROM python:3.12-slim\nRUN apt-get update && apt-get install -y --no-install-recommends curl\n\nHEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \\\n  CMD curl -f http://localhost:8000/api/health || exit 1\n\nCMD [\"uvicorn\", \"main:app\", \"--host\", \"0.0.0.0\", \"--port\", \"8000\"]</code></pre></div><h2>Healthcheck no Compose</h2><div class='code-wrapper'><div class='code-header'><span>depends_on com condition</span><button class='copy-btn'><i data-lucide='copy' size='14'></i> Copy</button></div><pre><code class='language-yaml'>services:\n  db:\n    image: postgres:16\n    healthcheck:\n      test: [\"CMD\", \"pg_isready\", \"-U\", \"postgres\"]\n      interval: 10s\n      retries: 5\n  api:\n    build: .\n    depends_on:\n      db:\n        condition: service_healthy</code></pre></div>"
+  },
+  {
+    "id": "docker-13",
+    "title": "Docker Swarm — Orquestração Nativa",
+    "slug": "docker-swarm",
+    "category": "Docker Avançado",
+    "level": 4,
+    "duration": 20,
+    "tags": [
+      "Swarm",
+      "Cluster",
+      "Scaling",
+      "Services"
+    ],
+    "excerpt": "Crie um cluster com Docker Swarm: managers, workers, services com réplicas e rolling updates.",
+    "content": "<h2>Docker Swarm vs Kubernetes</h2><p>O Swarm é embutido no Docker e mais simples. Use-o para times pequenos e infra simples. Use K8s para escala grande e ecossistema rico.</p><div class='code-wrapper'><div class='code-header'><span>Setup e Deploy</span><button class='copy-btn'><i data-lucide='copy' size='14'></i> Copy</button></div><pre><code class='language-bash'># Inicializar o Swarm\ndocker swarm init\n\n# Criar serviço com 3 réplicas\ndocker service create \\\n  --name web \\\n  --replicas 3 \\\n  --publish 80:80 \\\n  nginx:alpine\n\n# Escalar para 5 réplicas\ndocker service scale web=5\n\n# Rolling update zero-downtime\ndocker service update --image nginx:latest web\n\n# Ver status\ndocker node ls\ndocker service ls\ndocker service ps web</code></pre></div>"
+  },
+  {
+    "id": "docker-14",
+    "title": "Dockerfiles Prontos — Coleção de Templates",
+    "slug": "dockerfiles-templates",
+    "category": "Docker Templates",
+    "level": 2,
+    "duration": 18,
+    "tags": [
+      "Templates",
+      "FastAPI",
+      "Node.js",
+      "Go",
+      "Python"
+    ],
+    "excerpt": "Dockerfiles prontos para produção: FastAPI, Node.js Express, Go, Java Spring Boot e Nginx + React.",
+    "content": "<h2>Python FastAPI</h2><div class='code-wrapper'><div class='code-header'><span>FastAPI Multi-stage</span><button class='copy-btn'><i data-lucide='copy' size='14'></i> Copy</button></div><pre><code class='language-dockerfile'>FROM python:3.12-slim AS builder\nWORKDIR /app\nRUN apt-get update && apt-get install -y --no-install-recommends gcc\nCOPY requirements.txt .\nRUN pip wheel --no-cache-dir --wheel-dir wheels -r requirements.txt\n\nFROM python:3.12-slim\nRUN groupadd -r app && useradd -r -g app app\nWORKDIR /app\nCOPY --from=builder /app/wheels /wheels\nRUN pip install --no-cache /wheels/*\nCOPY --chown=app:app . .\nUSER app\nEXPOSE 8000\nCMD [\"uvicorn\", \"main:app\", \"--host\", \"0.0.0.0\"]</code></pre></div><h2>Node.js Express</h2><div class='code-wrapper'><div class='code-header'><span>Node.js Multi-stage</span><button class='copy-btn'><i data-lucide='copy' size='14'></i> Copy</button></div><pre><code class='language-dockerfile'>FROM node:20-alpine AS builder\nWORKDIR /app\nCOPY package*.json ./\nRUN npm ci\nCOPY . .\nRUN npm run build\n\nFROM node:20-alpine\nRUN addgroup -S app && adduser -S app -G app\nWORKDIR /app\nCOPY --from=builder --chown=app:app /app/dist ./dist\nCOPY --from=builder --chown=app:app /app/node_modules ./node_modules\nUSER app\nEXPOSE 3000\nCMD [\"node\", \"dist/server.js\"]</code></pre></div><h2>Java Spring Boot</h2><div class='code-wrapper'><div class='code-header'><span>Spring Boot Multi-stage</span><button class='copy-btn'><i data-lucide='copy' size='14'></i> Copy</button></div><pre><code class='language-dockerfile'>FROM maven:3.9-eclipse-temurin-17 AS builder\nWORKDIR /app\nCOPY pom.xml .\nRUN mvn dependency:go-offline\nCOPY src ./src\nRUN mvn package -DskipTests\n\nFROM gcr.io/distroless/java17\nCOPY --from=builder /app/target/app.jar app.jar\nEXPOSE 8080\nCMD [\"app.jar\"]</code></pre></div>"
+  },
+  {
+    "id": "docker-15",
+    "title": "Otimização de Imagens — .dockerignore e Alpine",
+    "slug": "otimizacao-imagens",
+    "category": "Docker Avançado",
+    "level": 3,
+    "duration": 12,
+    "tags": [
+      "Otimização",
+      ".dockerignore",
+      "Distroless",
+      "Alpine"
+    ],
+    "excerpt": "Reduza tamanho das imagens com .dockerignore, Alpine, Distroless e limpeza correta de camadas.",
+    "content": "<h2>O arquivo .dockerignore</h2><div class='code-wrapper'><div class='code-header'><span>.dockerignore</span><button class='copy-btn'><i data-lucide='copy' size='14'></i> Copy</button></div><pre><code class='language-text'>.git\n.gitignore\n.env\n*.md\nnode_modules\ndist\n.pytest_cache\n__pycache__\n**/*.pyc\ntests/\ndocs/</code></pre></div><h2>Técnicas para Imagens Menores</h2><ul><li><strong>Alpine Linux</strong>: Base de ~5MB vs ~150MB do Debian slim.</li><li><strong>Distroless</strong>: Sem shell, zero CVEs de SO.</li><li><strong>Limpeza em uma camada</strong>: Caches devem ser limpos na mesma instrução RUN.</li></ul><div class='code-wrapper'><div class='code-header'><span>RUN correto vs incorreto</span><button class='copy-btn'><i data-lucide='copy' size='14'></i> Copy</button></div><pre><code class='language-dockerfile'># CORRETO: limpa na mesma instrução\nRUN apt-get update && \\\n    apt-get install -y --no-install-recommends curl && \\\n    rm -rf /var/lib/apt/lists/*\n\n# ERRADO: o cache fica na camada anterior!\nRUN apt-get update\nRUN apt-get install -y curl\nRUN rm -rf /var/lib/apt/lists/*</code></pre></div>"
+  }
+]

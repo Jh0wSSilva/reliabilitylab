@@ -1,0 +1,129 @@
+[
+  {
+    "id": "sheet-docker-1",
+    "title": "Docker — Imagens e Build",
+    "category": "Docker",
+    "commands": [
+      {"cmd": "docker build -t app:v1 .", "description": "Constrói uma imagem usando o Dockerfile no diretório atual", "example": "docker build -t api:2.0 ./backend"},
+      {"cmd": "docker images", "description": "Lista todas as imagens locais com tamanho e data", "example": "docker images | grep api"},
+      {"cmd": "docker pull [image]", "description": "Baixa uma imagem do registry (Docker Hub por padrão)", "example": "docker pull postgres:16"},
+      {"cmd": "docker push [image]", "description": "Envia a imagem para um registry remoto", "example": "docker push usuario/app:v1"},
+      {"cmd": "docker tag [src] [dst]", "description": "Cria um alias/tag alternativo para uma imagem", "example": "docker tag app:latest usuario/app:1.0"},
+      {"cmd": "docker rmi [image]", "description": "Remove uma imagem local", "example": "docker rmi nginx:old"},
+      {"cmd": "docker image prune -a", "description": "Remove todas as imagens não usadas por nenhum container", "example": null},
+      {"cmd": "docker history [image]", "description": "Mostra as camadas e tamanhos de cada instrução do Dockerfile", "example": "docker history python:3.12-slim"},
+      {"cmd": "docker save -o file.tar [image]", "description": "Exporta uma imagem para um arquivo .tar (útil para air-gap)", "example": "docker save -o app.tar minha-app:v1"},
+      {"cmd": "docker scan [image]", "description": "Escaneia a imagem por CVEs de segurança (requer login)", "example": "docker scout cves nginx:alpine"}
+    ]
+  },
+  {
+    "id": "sheet-docker-2",
+    "title": "Docker — Containers e Runtime",
+    "category": "Docker",
+    "commands": [
+      {"cmd": "docker run -d -p [hp]:[cp] --name [n] [img]", "description": "Cria e inicia um container em background com porta e nome", "example": "docker run -d -p 8080:80 --name web nginx"},
+      {"cmd": "docker ps", "description": "Lista containers em execução", "example": "docker ps --format 'table {{.Names}}\\t{{.Status}}'"},
+      {"cmd": "docker ps -a", "description": "Lista todos os containers, incluindo os parados", "example": null},
+      {"cmd": "docker exec -it [c] /bin/sh", "description": "Abre um shell interativo dentro de um container ativo", "example": "docker exec -it postgres-db psql -U admin"},
+      {"cmd": "docker logs -f [container]", "description": "Acompanha os logs do container em tempo real (follow)", "example": "docker logs -f api --tail 100"},
+      {"cmd": "docker stop [container]", "description": "Para graciosamente um container (SIGTERM → SIGKILL)", "example": "docker stop meu-app"},
+      {"cmd": "docker rm [container]", "description": "Remove um container parado", "example": "docker rm -f meu-app"},
+      {"cmd": "docker inspect [container]", "description": "Retorna JSON detalhado: config de rede, volumes, env vars...", "example": "docker inspect web | jq '.[0].NetworkSettings'"},
+      {"cmd": "docker stats", "description": "Mostra uso de CPU, memória e rede de todos os containers", "example": "docker stats --no-stream"},
+      {"cmd": "docker cp [c]:[path] [local]", "description": "Copia arquivos entre o container e o host", "example": "docker cp api:/app/logs ./logs-backup"}
+    ]
+  },
+  {
+    "id": "sheet-docker-3",
+    "title": "Docker — Volumes e Redes",
+    "category": "Docker",
+    "commands": [
+      {"cmd": "docker volume create [name]", "description": "Cria um volume gerenciado pelo Docker", "example": "docker volume create dados-postgres"},
+      {"cmd": "docker volume ls", "description": "Lista todos os volumes", "example": null},
+      {"cmd": "docker volume inspect [name]", "description": "Detalhes do volume (mountpoint, driver, labels)", "example": "docker volume inspect dados-postgres"},
+      {"cmd": "docker volume prune", "description": "Remove todos os volumes sem containers associados", "example": null},
+      {"cmd": "docker network create [name]", "description": "Cria uma rede bridge customizada com DNS embutido", "example": "docker network create minha-rede"},
+      {"cmd": "docker network ls", "description": "Lista todas as redes Docker", "example": null},
+      {"cmd": "docker network inspect [name]", "description": "Detalha a rede: containers conectados, subnet, gateway", "example": "docker network inspect minha-rede"},
+      {"cmd": "docker network connect [net] [c]", "description": "Conecta um container ativo a uma rede adicional", "example": "docker network connect minha-rede api"}
+    ]
+  },
+  {
+    "id": "sheet-docker-4",
+    "title": "Docker Compose",
+    "category": "Docker",
+    "commands": [
+      {"cmd": "docker compose up -d", "description": "Sobe todos os serviços em background", "example": null},
+      {"cmd": "docker compose up --build -d", "description": "Reconstrói as imagens e sobe os serviços", "example": null},
+      {"cmd": "docker compose down", "description": "Para e remove containers, redes (preserva volumes)", "example": null},
+      {"cmd": "docker compose down -v", "description": "Para, remove containers E volumes (⚠ apaga dados!)", "example": null},
+      {"cmd": "docker compose logs -f [svc]", "description": "Acompanha logs de um serviço específico", "example": "docker compose logs -f api"},
+      {"cmd": "docker compose exec [svc] [cmd]", "description": "Executa comando dentro de um serviço rodando", "example": "docker compose exec api python manage.py migrate"},
+      {"cmd": "docker compose ps", "description": "Status de todos os serviços da stack", "example": null},
+      {"cmd": "docker compose pull", "description": "Baixa imagens mais recentes sem subir os serviços", "example": null},
+      {"cmd": "docker compose restart [svc]", "description": "Reinicia um serviço específico", "example": "docker compose restart nginx"}
+    ]
+  },
+  {
+    "id": "sheet-k8s-1",
+    "title": "kubectl — Recursos Essenciais",
+    "category": "Kubernetes",
+    "commands": [
+      {"cmd": "kubectl get [resource]", "description": "Lista recursos no namespace atual", "example": "kubectl get pods,svc,deploy"},
+      {"cmd": "kubectl get [resource] -A", "description": "Lista o recurso em todos os namespaces", "example": "kubectl get pods -A"},
+      {"cmd": "kubectl describe [resource] [name]", "description": "Detalhes completos, eventos e condições de um recurso", "example": "kubectl describe pod api-xyz-123"},
+      {"cmd": "kubectl apply -f [file]", "description": "Cria ou atualiza recursos declarativamente a partir de YAML", "example": "kubectl apply -f ./k8s/"},
+      {"cmd": "kubectl delete -f [file]", "description": "Remove os recursos definidos no arquivo", "example": "kubectl delete -f deployment.yaml"},
+      {"cmd": "kubectl delete [resource] [name]", "description": "Remove um recurso pelo tipo e nome", "example": "kubectl delete pod web-abc"},
+      {"cmd": "kubectl edit [resource] [name]", "description": "Abre o recurso no editor para edição ao vivo", "example": "kubectl edit deployment api"},
+      {"cmd": "kubectl get [resource] -o yaml", "description": "Exporta a definição completa do recurso em YAML", "example": "kubectl get deploy api -o yaml > backup.yaml"},
+      {"cmd": "kubectl explain [resource]", "description": "Documentação de todos os campos do recurso", "example": "kubectl explain pod.spec.containers"}
+    ]
+  },
+  {
+    "id": "sheet-k8s-2",
+    "title": "kubectl — Pods e Debug",
+    "category": "Kubernetes",
+    "commands": [
+      {"cmd": "kubectl logs [pod]", "description": "Exibe logs de um pod (último container)", "example": "kubectl logs api-xyz --tail=200"},
+      {"cmd": "kubectl logs -f [pod]", "description": "Acompanha logs em tempo real", "example": "kubectl logs -f deployment/api"},
+      {"cmd": "kubectl logs [pod] -c [container]", "description": "Logs de um container específico em um pod multi-container", "example": "kubectl logs web-pod -c nginx"},
+      {"cmd": "kubectl exec -it [pod] -- /bin/sh", "description": "Shell interativo dentro de um pod", "example": "kubectl exec -it db-0 -- psql -U postgres"},
+      {"cmd": "kubectl port-forward [svc/pod] [hp]:[cp]", "description": "Redireciona porta local para o pod/serviço no cluster", "example": "kubectl port-forward svc/api 8080:80"},
+      {"cmd": "kubectl top pods", "description": "Consumo de CPU e memória de todos os pods (requer metrics-server)", "example": "kubectl top pods --sort-by=cpu"},
+      {"cmd": "kubectl top nodes", "description": "Consumo de CPU e memória de todos os nós", "example": null},
+      {"cmd": "kubectl debug [pod] --image=busybox", "description": "Cria um container ephemeral de debug em um pod", "example": "kubectl debug -it web-abc --image=busybox"},
+      {"cmd": "kubectl get events --sort-by=.lastTimestamp", "description": "Lista eventos do cluster em ordem cronológica", "example": null}
+    ]
+  },
+  {
+    "id": "sheet-k8s-3",
+    "title": "kubectl — Deployments e Rollouts",
+    "category": "Kubernetes",
+    "commands": [
+      {"cmd": "kubectl rollout status deployment/[name]", "description": "Aguarda e exibe o status de um rollout em andamento", "example": "kubectl rollout status deployment/api"},
+      {"cmd": "kubectl rollout history deployment/[name]", "description": "Exibe o histórico de versões do deployment", "example": "kubectl rollout history deployment/api"},
+      {"cmd": "kubectl rollout undo deployment/[name]", "description": "Reverte imediatamente para a revisão anterior", "example": "kubectl rollout undo deployment/api"},
+      {"cmd": "kubectl rollout undo deployment/[n] --to-revision=2", "description": "Reverte para uma revisão específica do histórico", "example": null},
+      {"cmd": "kubectl scale deployment/[n] --replicas=5", "description": "Escala manualmente o número de réplicas", "example": "kubectl scale deployment/api --replicas=5"},
+      {"cmd": "kubectl set image deployment/[n] [c]=[img]", "description": "Atualiza a imagem de um container (dispara rolling update)", "example": "kubectl set image deployment/api api=app:v3"},
+      {"cmd": "kubectl rollout pause deployment/[name]", "description": "Pausa um rollout em andamento", "example": null},
+      {"cmd": "kubectl rollout resume deployment/[name]", "description": "Retoma um rollout pausado", "example": null}
+    ]
+  },
+  {
+    "id": "sheet-k8s-4",
+    "title": "kubectl — Cluster e Contextos",
+    "category": "Kubernetes",
+    "commands": [
+      {"cmd": "kubectl config get-contexts", "description": "Lista todos os contextos (clusters) configurados no kubeconfig", "example": null},
+      {"cmd": "kubectl config use-context [name]", "description": "Muda para um contexto/cluster diferente", "example": "kubectl config use-context production-gke"},
+      {"cmd": "kubectl config current-context", "description": "Exibe o contexto ativo no momento", "example": null},
+      {"cmd": "kubectl get nodes", "description": "Lista todos os nós do cluster com status e versão", "example": "kubectl get nodes -o wide"},
+      {"cmd": "kubectl cordon [node]", "description": "Marca um nó como não-agendável (impede novos pods)", "example": "kubectl cordon node-3"},
+      {"cmd": "kubectl drain [node]", "description": "Move todos os pods de um nó antes de manutenção", "example": "kubectl drain node-3 --ignore-daemonsets"},
+      {"cmd": "kubectl uncordon [node]", "description": "Reabilita agendamento de pods em um nó", "example": "kubectl uncordon node-3"},
+      {"cmd": "kubectl auth can-i [verb] [resource]", "description": "Verifica se você tem permissão para uma ação RBAC", "example": "kubectl auth can-i delete pods --as=dev-user"}
+    ]
+  }
+]

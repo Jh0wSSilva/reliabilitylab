@@ -1,0 +1,98 @@
+# =============================================================================
+# Webhook Logger — Receiver local para simular notificações do Alertmanager
+#
+# Este Deployment cria um servidor HTTP simples que:
+#   - Recebe webhooks do Alertmanager
+#   - Loga os alertas recebidos no stdout
+#   - Permite visualizar alertas via: kubectl logs -n monitoring -l app=webhook-logger
+#
+# Em produção, isso seria substituído por Slack, PagerDuty, etc.
+# =============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alertmanager-webhook-logger
+  namespace: monitoring
+  labels:
+    app: webhook-logger
+    app.kubernetes.io/part-of: reliabilitylab
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: webhook-logger
+  template:
+    metadata:
+      labels:
+        app: webhook-logger
+    spec:
+      containers:
+      - name: webhook-logger
+        # Imagem leve com Python para logar webhooks
+        image: python:3.12-slim
+        command:
+        - python3
+        - -c
+        - |
+          from http.server import HTTPServer, BaseHTTPRequestHandler
+          import json, sys, datetime
+
+          class WebhookHandler(BaseHTTPRequestHandler):
+              def do_POST(self):
+                  content_length = int(self.headers.get('Content-Length', 0))
+                  body = self.rfile.read(content_length)
+                  timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                  channel = self.path.split('/')[-1] if '/' in self.path else 'default'
+
+                  try:
+                      data = json.loads(body)
+                      alerts = data.get('alerts', [])
+                      for alert in alerts:
+                          status = alert.get('status', 'unknown')
+                          name = alert.get('labels', {}).get('alertname', 'unknown')
+                          severity = alert.get('labels', {}).get('severity', 'unknown')
+                          summary = alert.get('annotations', {}).get('summary', '')
+                          icon = '🔴' if severity == 'critical' else '🟡' if severity == 'warning' else 'ℹ️'
+                          state = '🔥 FIRING' if status == 'firing' else '✅ RESOLVED'
+                          print(f"[{timestamp}] {icon} [{channel.upper()}] {state} | {name} | severity={severity} | {summary}", flush=True)
+                  except Exception as e:
+                      print(f"[{timestamp}] [ERRO] Falha ao processar webhook: {e}", flush=True)
+                      print(f"  Body: {body.decode('utf-8', errors='replace')}", flush=True)
+
+                  self.send_response(200)
+                  self.end_headers()
+                  self.wfile.write(b'ok')
+
+              def log_message(self, format, *args):
+                  pass  # Suprimir logs de acesso HTTP
+
+          print("=== Alertmanager Webhook Logger ===", flush=True)
+          print("Escutando na porta 9095...", flush=True)
+          print("Canais: /webhook/critical, /webhook/warning, /webhook/slo, /webhook/info", flush=True)
+          HTTPServer(('0.0.0.0', 9095), WebhookHandler).serve_forever()
+        ports:
+        - containerPort: 9095
+          name: http
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            cpu: 50m
+            memory: 64Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: alertmanager-webhook-logger
+  namespace: monitoring
+  labels:
+    app: webhook-logger
+    app.kubernetes.io/part-of: reliabilitylab
+spec:
+  selector:
+    app: webhook-logger
+  ports:
+  - port: 9095
+    targetPort: 9095
+    name: http

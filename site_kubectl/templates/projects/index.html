@@ -1,0 +1,288 @@
+{% extends "base.html" %}
+
+{% block breadcrumbs %}Home / Projects{% endblock %}
+
+{% block content %}
+<style>
+/* === Projects Page === */
+.proj-header { margin-bottom: 2.5rem; }
+.proj-header p { max-width: 680px; }
+
+.proj-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: 1.75rem;
+}
+
+.proj-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+}
+.proj-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--accent-purple), var(--accent-blue));
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.proj-card:hover::before { opacity: 1; }
+.proj-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 24px 48px rgba(0,0,0,0.4), inset 0 0 0 1px var(--border-highlight);
+  border-color: rgba(139,92,246,0.3);
+}
+
+.proj-card-header {
+  padding: 1.5rem 1.75rem 1.25rem;
+  border-bottom: 1px solid var(--border-color);
+  display: flex; gap: 1.25rem; align-items: flex-start;
+}
+.proj-icon {
+  width: 52px; height: 52px; flex-shrink: 0;
+  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.4rem;
+}
+.icon-beginner  { background: rgba(59,130,246,0.12); color: var(--accent-blue); }
+.icon-intermediate { background: rgba(139,92,246,0.12); color: var(--accent-purple); }
+.icon-advanced  { background: rgba(239,68,68,0.12); color: #ef4444; }
+
+.proj-card-meta { flex: 1; min-width: 0; }
+.proj-badges { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.6rem; }
+.badge {
+  font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.8px; padding: 0.18rem 0.6rem; border-radius: 20px;
+  border: 1px solid;
+}
+.badge-beginner     { color: var(--accent-blue);   background: rgba(59,130,246,0.1);  border-color: rgba(59,130,246,0.3); }
+.badge-intermediate { color: var(--accent-purple);  background: rgba(139,92,246,0.1); border-color: rgba(139,92,246,0.3); }
+.badge-advanced     { color: #ef4444;               background: rgba(239,68,68,0.1);  border-color: rgba(239,68,68,0.3); }
+.badge-category     { color: var(--text-muted);     background: rgba(255,255,255,0.05); border-color: var(--border-color); }
+
+.proj-name { font-size: 1.15rem; font-weight: 700; color: var(--text-main); line-height: 1.3; }
+
+.proj-card-body { padding: 1.25rem 1.75rem; flex: 1; display: flex; flex-direction: column; gap: 1.25rem; }
+
+.proj-desc { font-size: 0.95rem; color: var(--text-muted); line-height: 1.7; }
+
+.proj-explanation {
+  background: rgba(0, 255, 136, 0.03);
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+  border-left: 3px solid var(--accent-neon);
+}
+.proj-explanation-title {
+  font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 1px; color: var(--accent-neon); margin-bottom: 0.5rem;
+  display: flex; align-items: center; gap: 0.4rem;
+}
+.proj-explanation-text { font-size: 0.87rem; color: var(--text-muted); line-height: 1.7; margin: 0; }
+
+
+.proj-objectives {
+  background: rgba(0,0,0,0.2); border-radius: 10px;
+  padding: 1rem 1.25rem;
+  border-left: 3px solid var(--accent-purple);
+}
+.proj-objectives-title {
+  font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 1px; color: var(--accent-purple); margin-bottom: 0.6rem;
+}
+.obj-list { display: flex; flex-direction: column; gap: 0.35rem; }
+.obj-item { font-size: 0.85rem; color: var(--text-muted); display: flex; align-items: flex-start; gap: 0.5rem; }
+.obj-item::before { content: '▸'; color: var(--accent-neon); flex-shrink: 0; font-size: 0.7rem; margin-top: 2px; }
+
+.proj-tech { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+.tech-pill {
+  font-family: var(--font-code); font-size: 0.72rem;
+  padding: 0.2rem 0.55rem; border-radius: 6px;
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+  color: var(--text-muted);
+}
+
+.proj-card-footer {
+  padding: 1rem 1.75rem;
+  border-top: 1px solid var(--border-color);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.proj-time { font-size: 0.82rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.4rem; }
+.expand-btn {
+  background: rgba(139,92,246,0.1); border: 1px solid rgba(139,92,246,0.3);
+  color: var(--accent-purple); padding: 0.4rem 1rem; border-radius: 8px;
+  font-size: 0.82rem; font-weight: 600; cursor: pointer;
+  transition: all 0.2s; display: flex; align-items: center; gap: 0.4rem;
+  font-family: var(--font-ui);
+}
+.expand-btn:hover { background: rgba(139,92,246,0.2); }
+
+/* Steps drawer */
+.steps-drawer {
+  display: none;
+  background: rgba(0,0,0,0.3);
+  border-top: 1px solid var(--border-color);
+}
+.steps-drawer.open { display: block; }
+.steps-list { display: flex; flex-direction: column; }
+.step-item { border-bottom: 1px solid rgba(255,255,255,0.04); }
+.step-item:last-child { border-bottom: none; }
+.step-header {
+  padding: 0.75rem 1.75rem;
+  display: flex; align-items: center; gap: 0.75rem;
+  cursor: pointer; transition: background 0.2s;
+  font-size: 0.88rem; font-weight: 600; color: var(--text-main);
+}
+.step-header:hover { background: rgba(255,255,255,0.03); }
+.step-num {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--accent-purple); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.68rem; font-weight: 700; flex-shrink: 0;
+}
+.step-code {
+  display: none; margin: 0; padding: 1rem 1.75rem;
+  background: #0d1117;
+  border-top: 1px solid rgba(255,255,255,0.05);
+}
+.step-code.open { display: block; }
+.step-code pre {
+  margin: 0; padding: 0;
+  font-family: var(--font-code); font-size: 0.8rem;
+  color: #c9d1d9; white-space: pre-wrap;
+  word-break: break-all;
+}
+.step-copy {
+  margin-left: auto; background: rgba(255,255,255,0.07); border: none;
+  color: #8b949e; font-size: 0.75rem; padding: 0.2rem 0.6rem; border-radius: 5px;
+  cursor: pointer; display: flex; align-items: center; gap: 0.3rem;
+  font-family: var(--font-ui); transition: 0.2s;
+}
+.step-copy:hover { background: rgba(255,255,255,0.15); color: #fff; }
+</style>
+
+<div class="proj-header">
+  <span class="tag advanced" style="margin-bottom:0.75rem; display:inline-flex;">Real World Projects</span>
+  <h1>Projetos Reais</h1>
+  <p>Projetos ponta a ponta com arquitetura real, comandos prontos para executar e boas práticas de produção embutidas.</p>
+</div>
+
+<div class="proj-grid">
+{% for proj in projects %}
+{% set lv = proj.level | lower %}
+<div class="proj-card">
+
+  <!-- Card Header -->
+  <div class="proj-card-header">
+    <div class="proj-icon icon-{{ lv }}">
+      <i data-lucide="{{ proj.icon }}" size="26"></i>
+    </div>
+    <div class="proj-card-meta">
+      <div class="proj-badges">
+        <span class="badge badge-{{ lv }}">{{ proj.level }}</span>
+        <span class="badge badge-category">{{ proj.category }}</span>
+      </div>
+      <div class="proj-name">{{ proj.name }}</div>
+    </div>
+  </div>
+
+  <!-- Card Body -->
+  <div class="proj-card-body">
+    <p class="proj-desc">{{ proj.description }}</p>
+
+    <div class="proj-explanation">
+      <div class="proj-explanation-title"><i data-lucide="lightbulb" size="13"></i> Por que fazer esse projeto?</div>
+      <p class="proj-explanation-text">{{ proj.explanation }}</p>
+    </div>
+
+    <div class="proj-objectives">
+      <div class="proj-objectives-title">🎯 Objetivos</div>
+      <div class="obj-list">
+        {% for obj in proj.objectives %}
+        <div class="obj-item">{{ obj }}</div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="proj-tech">
+      {% for t in proj.tech %}
+      <span class="tech-pill">{{ t }}</span>
+      {% endfor %}
+    </div>
+  </div>
+
+
+  <!-- Card Footer -->
+  <div class="proj-card-footer">
+    <span class="proj-time">
+      <i data-lucide="clock" size="14"></i> ~{{ proj.duration }} min
+    </span>
+    <button class="expand-btn" onclick="toggleSteps(this)">
+      <i data-lucide="terminal" size="13"></i> Ver Passos
+    </button>
+  </div>
+
+  <!-- Steps Drawer -->
+  <div class="steps-drawer">
+    <div class="steps-list">
+      {% for step in proj.steps %}
+      <div class="step-item">
+        <div class="step-header" onclick="toggleCode(this)">
+          <span class="step-num">{{ loop.index }}</span>
+          {{ step.title }}
+          <span class="step-copy" onclick="copyStep(event, this)">
+            <i data-lucide="copy" size="11"></i> Copy
+          </span>
+        </div>
+        <div class="step-code">
+          <pre>{{ step.cmd }}</pre>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+</div>
+{% endfor %}
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleSteps(btn) {
+  const card = btn.closest('.proj-card');
+  const drawer = card.querySelector('.steps-drawer');
+  const isOpen = drawer.classList.toggle('open');
+  btn.innerHTML = isOpen
+    ? '<i data-lucide="chevron-up" size="13"></i> Fechar'
+    : '<i data-lucide="terminal" size="13"></i> Ver Passos';
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+function toggleCode(header) {
+  // Don't fire when clicking copy button
+  if (event.target.closest('.step-copy')) return;
+  const code = header.nextElementSibling;
+  code.classList.toggle('open');
+}
+
+function copyStep(event, btn) {
+  event.stopPropagation();
+  const code = btn.closest('.step-item').querySelector('.step-code pre').innerText;
+  navigator.clipboard.writeText(code);
+  btn.innerHTML = '<i data-lucide="check" size="11"></i> Copied!';
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+  setTimeout(() => {
+    btn.innerHTML = '<i data-lucide="copy" size="11"></i> Copy';
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  }, 2000);
+}
+</script>
+{% endblock %}

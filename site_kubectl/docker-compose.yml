@@ -1,0 +1,41 @@
+# =============================================================================
+# Docker Compose — Desenvolvimento local do site_kubectl
+# Sobe a aplicação FastAPI com hot-reload + NGINX como reverse proxy
+# =============================================================================
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: site-kubectl-app
+    ports:
+      - "8080:8000"
+    volumes:
+      - ./app:/app/app          # Hot reload do código
+      - ./templates:/app/templates  # Hot reload dos templates
+    environment:
+      - APP_ENV=development
+      - LOG_LEVEL=debug
+      - APP_HOST=0.0.0.0
+      - APP_PORT=8000
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  nginx:
+    image: nginx:alpine
+    container_name: site-kubectl-nginx
+    ports:
+      - "80:80"
+    depends_on:
+      app:
+        condition: service_healthy
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./app/static:/usr/share/nginx/html/static:ro
+    restart: unless-stopped

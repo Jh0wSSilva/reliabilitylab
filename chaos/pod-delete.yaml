@@ -1,0 +1,96 @@
+# =============================================================================
+# Chaos Engineering — Deleção de Pod
+# Simula falha de pod para testar a resiliência da aplicação
+#
+# O que acontece:
+#   - Um pod da aplicação é deletado aleatoriamente
+#   - O Deployment deve recriar o pod automaticamente
+#   - O serviço deve continuar respondendo (se houver múltiplas réplicas)
+#
+# Como observar:
+#   kubectl get pods -n reliabilitylab -w
+#   kubectl get events -n reliabilitylab --sort-by='.lastTimestamp'
+#
+# Pré-requisito: Litmus ChaosEngine ou executar manualmente:
+#   kubectl delete pod -n reliabilitylab -l app.kubernetes.io/name=site-kubectl --grace-period=0 --force
+# =============================================================================
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: chaos-pod-delete
+  namespace: reliabilitylab
+  labels:
+    app.kubernetes.io/part-of: reliabilitylab
+    chaos-experiment: pod-delete
+spec:
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        chaos-experiment: pod-delete
+    spec:
+      serviceAccountName: chaos-sa
+      restartPolicy: Never
+      containers:
+      - name: chaos-pod-delete
+        image: bitnami/kubectl:latest
+        command:
+        - /bin/sh
+        - -c
+        - |
+          echo "=== Chaos Engineering: Deleção de Pod ==="
+          echo ""
+          echo "[INFO] Listando pods antes do experimento..."
+          kubectl get pods -n reliabilitylab -l app.kubernetes.io/name=site-kubectl
+          echo ""
+          # Selecionar um pod aleatoriamente e deletar
+          POD=$(kubectl get pods -n reliabilitylab -l app.kubernetes.io/name=site-kubectl -o jsonpath='{.items[0].metadata.name}')
+          echo "[CHAOS] Deletando pod: ${POD}"
+          kubectl delete pod "$POD" -n reliabilitylab --grace-period=0 --force
+          echo ""
+          echo "[INFO] Aguardando 10s para o Deployment recriar o pod..."
+          sleep 10
+          echo ""
+          echo "[INFO] Pods após o experimento:"
+          kubectl get pods -n reliabilitylab -l app.kubernetes.io/name=site-kubectl
+          echo ""
+          echo "[OK] Experimento concluído. Verifique se a aplicação continua respondendo."
+---
+# ServiceAccount para os experimentos de chaos
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: chaos-sa
+  namespace: reliabilitylab
+  labels:
+    app.kubernetes.io/part-of: reliabilitylab
+---
+# Role com permissões necessárias para chaos
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: chaos-role
+  namespace: reliabilitylab
+spec:
+  rules:
+  - apiGroups: [ "" ]
+    resources: [ "pods" ]
+    verbs: [ "get", "list", "delete" ]
+  - apiGroups: [ "" ]
+    resources: [ "events" ]
+    verbs: [ "get", "list" ]
+---
+# RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: chaos-rolebinding
+  namespace: reliabilitylab
+subjects:
+- kind: ServiceAccount
+  name: chaos-sa
+  namespace: reliabilitylab
+roleRef:
+  kind: Role
+  name: chaos-role
+  apiGroup: rbac.authorization.k8s.io

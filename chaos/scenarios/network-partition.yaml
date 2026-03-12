@@ -1,0 +1,154 @@
+# =============================================================================
+# Cenário de Chaos: Partição de Rede
+#
+# Simula uma partição de rede onde o serviço perde conectividade.
+# Usa NetworkPolicy para bloquear TODO o tráfego de entrada e saída.
+#
+# Uso:
+#   # Aplicar partição (bloqueia tráfego)
+#   kubectl apply -f chaos/scenarios/network-partition.yaml
+#
+#   # Observar por 60 segundos, depois remover
+#   kubectl delete -f chaos/scenarios/network-partition.yaml
+#
+# Observar:
+#   - Requisições falhando (connection timeout)
+#   - Alertas de ServiceUnavailable e HighErrorRate
+#   - Recuperação após remoção da NetworkPolicy
+# =============================================================================
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: chaos-network-partition
+  namespace: reliabilitylab
+  labels:
+    app.kubernetes.io/part-of: reliabilitylab
+    chaos-scenario: network-partition
+spec:
+  podSelector:
+    matchLabels:
+      app: site-kubectl
+  policyTypes:
+  - Ingress
+  - Egress
+  # Sem regras de ingress/egress = bloqueia TUDO
+  ingress: []
+  egress: []
+---
+# Job para automatizar o cenário: aplica, espera, remove
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: chaos-network-sa
+  namespace: reliabilitylab
+  labels:
+    chaos-scenario: network-partition
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: chaos-network-role
+  namespace: reliabilitylab
+rules:
+- apiGroups: ["networking.k8s.io"]
+  resources: ["networkpolicies"]
+  verbs: ["get", "list", "create", "delete"]
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: chaos-network-binding
+  namespace: reliabilitylab
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: chaos-network-role
+subjects:
+- kind: ServiceAccount
+  name: chaos-network-sa
+  namespace: reliabilitylab
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: chaos-network-partition
+  namespace: reliabilitylab
+  labels:
+    app.kubernetes.io/part-of: reliabilitylab
+    chaos-scenario: network-partition
+spec:
+  ttlSecondsAfterFinished: 300
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        chaos-scenario: network-partition-job
+    spec:
+      serviceAccountName: chaos-network-sa
+      restartPolicy: Never
+      containers:
+      - name: network-partition
+        image: bitnami/kubectl:latest
+        command:
+        - /bin/sh
+        - -c
+        - |
+          DURATION=${CHAOS_DURATION:-60}
+          echo "=========================================="
+          echo "  CHAOS: Partição de Rede"
+          echo "  Duração: ${DURATION}s"
+          echo "=========================================="
+          echo ""
+          echo "[$(date)] Estado inicial dos pods:"
+          kubectl get pods -n reliabilitylab -l app=site-kubectl
+          echo ""
+          echo "[$(date)] Aplicando NetworkPolicy de bloqueio total..."
+          cat <<'EOF' | kubectl apply -f -
+          apiVersion: networking.k8s.io/v1
+          kind: NetworkPolicy
+          metadata:
+            name: chaos-network-block
+            namespace: reliabilitylab
+          spec:
+            podSelector:
+              matchLabels:
+                app: site-kubectl
+            policyTypes:
+            - Ingress
+            - Egress
+            ingress: []
+            egress: []
+          EOF
+          echo ""
+          echo "[$(date)] Rede particionada. Nenhum tráfego permitido."
+          echo "[$(date)] Aguardando ${DURATION} segundos..."
+          sleep "$DURATION"
+          echo ""
+          echo "[$(date)] Removendo bloqueio de rede..."
+          kubectl delete networkpolicy chaos-network-block -n reliabilitylab
+          echo ""
+          echo "[$(date)] Rede restaurada. Aguardando 15s para estabilização..."
+          sleep 15
+          echo ""
+          echo "[$(date)] Estado final dos pods:"
+          kubectl get pods -n reliabilitylab -l app=site-kubectl
+          echo ""
+          echo "=========================================="
+          echo "  CHAOS CONCLUÍDO — Verifique:"
+          echo "  1. Erros de timeout no Grafana"
+          echo "  2. Alertas de HighErrorRate"
+          echo "  3. Recuperação após remoção do bloqueio"
+          echo "=========================================="
+        env:
+        - name: CHAOS_DURATION
+          value: "60"
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 100m
+            memory: 128Mi
